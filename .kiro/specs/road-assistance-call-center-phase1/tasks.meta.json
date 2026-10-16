@@ -1,0 +1,642 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create `package.json` with React ≥19.0.0, Vite ≥5.0.0, TypeScript ≥5.0.0 as the build toolchain": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166533675
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166543635
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166846983
+      }
+    ],
+    "1.2 Install frontend runtime and UI dependencies": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166533869
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166546947
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166850641
+      }
+    ],
+    "2.1 Create `tailwind.config.ts` with content glob covering `src/**/*.{ts,tsx}`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166533929
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166857909
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167215149
+      }
+    ],
+    "2.2 Inject Tailwind directives into the root CSS entry point": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166533963
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167225099
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167259436
+      }
+    ],
+    "3.1 Add AWS SDK v3 packages and utility libraries as backend dependencies": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534007
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166861229
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167218420
+      }
+    ],
+    "4.1 Create `amplify/auth/resource.ts` with email and phone login, and custom user attributes": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534084
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167290428
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167956427
+      }
+    ],
+    "5.1 Create `amplify/data/resource.ts` skeleton with `RoadAssistRecord` model and composite primary keys": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534122
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167293996
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167960698
+      }
+    ],
+    "5.2 Add all GSI key attributes to the RoadAssistRecord model": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534158
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167964359
+      }
+    ],
+    "5.3 Add AgentCore Memory pointer attributes and Guardrail telemetry attributes": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534193
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167968052
+      }
+    ],
+    "5.4 Add Contact Lens and post-call analytics attributes": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534229
+      },
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167971637
+      }
+    ],
+    "6.1 Add GSI1 (`CustomerActiveIncidentIndex`) and GSI2 (`FleetAvailabilityIndex`)": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534268
+      }
+    ],
+    "6.2 Add GSI3 (`TruckActiveIncidentIndex`), GSI4 (`OperationsControlIndex`), GSI5 (`VehicleIncidentHistoryIndex`)": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534307
+      }
+    ],
+    "7.1 Declare `IncidentMemoryContext`, `NearestTruckResult`, and `DispatchConfirmation` custom types": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534345
+      }
+    ],
+    "7.2 Declare `AnalyticsWrapUpResult`, `IncidentLiveUpdate`, and `WrapUpInput` custom types": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534396
+      }
+    ],
+    "8.1 Declare `syncIncidentAndMemory` and `locateAndFindNearestTruck` queries": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534444
+      },
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792172789454
+      },
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792172936498
+      }
+    ],
+    "8.2 Declare `confirmDispatchAndGeofence`, `wrapUpIncidentAnalytics`, and `updateTruckTelemetry` mutations": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534477
+      },
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792172939686
+      },
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792173298643
+      }
+    ],
+    "8.3 Declare `onIncidentLiveUpdate` subscription filtered by `incidentId`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534533
+      },
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792173302108
+      },
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792173795282
+      }
+    ],
+    "9.1 Create `syncIncidentAndMemory` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534578
+      }
+    ],
+    "9.2 Create `locateAndFindNearestTruck` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534611
+      }
+    ],
+    "9.3 Create `confirmDispatchAndGeofence` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534645
+      }
+    ],
+    "9.4 Create `wrapUpIncidentAnalytics` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534674
+      }
+    ],
+    "9.5 Create `updateTruckTelemetry` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534703
+      }
+    ],
+    "10. Checkpoint — verify TypeScript compilation of all `amplify/` source files": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534735
+      }
+    ],
+    "11.1 Wire auth, data, and all five stub functions into the root backend configuration": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534766
+      }
+    ],
+    "11.2 Apply CDK L2 override to enable DynamoDB Streams (`NEW_AND_OLD_IMAGES`)": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534819
+      }
+    ],
+    "11.3 Apply CDK L2 override to enable TTL on the `expiresAt` attribute": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534860
+      }
+    ],
+    "11.4 Export `RoadAssistRecordStreamArn` as a CloudFormation output": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534891
+      }
+    ],
+    "12.1 Install Vitest and fast-check; configure test runner": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534919
+      }
+    ],
+    "12.2 Write property tests for key-pattern round-trips (Properties 1, 2, 3, 12)": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534951
+      }
+    ],
+    "13.1 Create `src/App.tsx` with Amplify configuration wrapper and Authenticator": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166534979
+      }
+    ],
+    "13.2 Create stub frontend components": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166535011
+      }
+    ],
+    "14. Final checkpoint — compile all sources and run the full property test suite": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166535042
+      }
+    ],
+    "1. Initialize project workspace and install frontend dependencies": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792166850686
+      }
+    ],
+    "3. Install backend and Lambda resolver dependencies": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167218515
+      }
+    ],
+    "2. Configure Tailwind CSS and root CSS entry point": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167259535
+      }
+    ],
+    "4. Implement Amplify Auth resource (Cognito User Pool)": [
+      {
+        "executionId": "35536455-f5b2-41c9-a7ad-1909a501cf13",
+        "chatSessionId": "sess_82792040-0e33-4a5c-a7c1-c225c84ea70d",
+        "timestamp": 1792167956504
+      }
+    ],
+    "5.2 Add all GSI key attributes and domain-specific attributes to RoadAssistRecord": [
+      {
+        "executionId": "e05961c0-1890-426f-a48b-c507009f9a71",
+        "chatSessionId": "sess_80a05b2a-4a4a-4b66-9427-d69cfd9971e2",
+        "timestamp": 1792171682851
+      },
+      {
+        "executionId": "e05961c0-1890-426f-a48b-c507009f9a71",
+        "chatSessionId": "sess_80a05b2a-4a4a-4b66-9427-d69cfd9971e2",
+        "timestamp": 1792172043014
+      }
+    ],
+    "5. Define the RoadAssistRecord Amplify data model with composite keys and all attributes": [
+      {
+        "executionId": "e05961c0-1890-426f-a48b-c507009f9a71",
+        "chatSessionId": "sess_80a05b2a-4a4a-4b66-9427-d69cfd9971e2",
+        "timestamp": 1792172043096
+      }
+    ],
+    "6. Provision all five Global Secondary Indexes and define AppSync Custom Types": [
+      {
+        "executionId": "be59fbd1-a2ac-4c5f-9704-c4805821f5bb",
+        "chatSessionId": "sess_d0779c89-c438-40d6-86d7-ad57de817d91",
+        "timestamp": 1792172102279
+      },
+      {
+        "executionId": "be59fbd1-a2ac-4c5f-9704-c4805821f5bb",
+        "chatSessionId": "sess_d0779c89-c438-40d6-86d7-ad57de817d91",
+        "timestamp": 1792172194870
+      }
+    ],
+    "6.1 Add all five GSIs to the RoadAssistRecord model": [
+      {
+        "executionId": "be59fbd1-a2ac-4c5f-9704-c4805821f5bb",
+        "chatSessionId": "sess_d0779c89-c438-40d6-86d7-ad57de817d91",
+        "timestamp": 1792172105374
+      },
+      {
+        "executionId": "be59fbd1-a2ac-4c5f-9704-c4805821f5bb",
+        "chatSessionId": "sess_d0779c89-c438-40d6-86d7-ad57de817d91",
+        "timestamp": 1792172191218
+      }
+    ],
+    "6.2 Declare all six AppSync Custom Types in the schema": [
+      {
+        "executionId": "be59fbd1-a2ac-4c5f-9704-c4805821f5bb",
+        "chatSessionId": "sess_d0779c89-c438-40d6-86d7-ad57de817d91",
+        "timestamp": 1792172108222
+      },
+      {
+        "executionId": "be59fbd1-a2ac-4c5f-9704-c4805821f5bb",
+        "chatSessionId": "sess_d0779c89-c438-40d6-86d7-ad57de817d91",
+        "timestamp": 1792172194832
+      }
+    ],
+    "7.1 Create `syncIncidentAndMemory` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172245432
+      },
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172687249
+      }
+    ],
+    "7.2 Create `locateAndFindNearestTruck` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172248601
+      },
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172690480
+      }
+    ],
+    "7.3 Create `confirmDispatchAndGeofence` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172251983
+      },
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172694286
+      }
+    ],
+    "7.4 Create `wrapUpIncidentAnalytics` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172255883
+      },
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172698139
+      }
+    ],
+    "7.5 Create `updateTruckTelemetry` stub — `resource.ts` and `handler.ts`": [
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172259618
+      },
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172701544
+      }
+    ],
+    "7. Create all five stub Lambda resolver functions": [
+      {
+        "executionId": "b9b07431-2d73-40c7-b29a-a930b3ec701f",
+        "chatSessionId": "sess_5b01d8a7-a9b6-4000-b06f-6a25dae254ac",
+        "timestamp": 1792172701594
+      }
+    ],
+    "8. Declare AppSync Queries, Mutations, and Subscription in the schema": [
+      {
+        "executionId": "8184da87-d25c-45a4-9f52-283f52dc34c2",
+        "chatSessionId": "sess_143603e1-d6b5-492f-bed7-b05aea678e46",
+        "timestamp": 1792173795434
+      }
+    ],
+    "9.1 Wire auth, data, and all five stub functions into `amplify/backend.ts`": [
+      {
+        "executionId": "06406e9f-23a2-476e-beb4-310ac06056d6",
+        "chatSessionId": "sess_aa42ee9d-e762-485a-a509-74b415c7c0eb",
+        "timestamp": 1792173816500
+      },
+      {
+        "executionId": "06406e9f-23a2-476e-beb4-310ac06056d6",
+        "chatSessionId": "sess_aa42ee9d-e762-485a-a509-74b415c7c0eb",
+        "timestamp": 1792173876053
+      }
+    ],
+    "9.2 Apply CDK L2 overrides for Streams, TTL, and CloudFormation output": [
+      {
+        "executionId": "06406e9f-23a2-476e-beb4-310ac06056d6",
+        "chatSessionId": "sess_aa42ee9d-e762-485a-a509-74b415c7c0eb",
+        "timestamp": 1792173879189
+      },
+      {
+        "executionId": "06406e9f-23a2-476e-beb4-310ac06056d6",
+        "chatSessionId": "sess_aa42ee9d-e762-485a-a509-74b415c7c0eb",
+        "timestamp": 1792173932040
+      }
+    ],
+    "9. Assemble `amplify/backend.ts` with CDK L2 overrides": [
+      {
+        "executionId": "06406e9f-23a2-476e-beb4-310ac06056d6",
+        "chatSessionId": "sess_aa42ee9d-e762-485a-a509-74b415c7c0eb",
+        "timestamp": 1792173932094
+      }
+    ],
+    "10.1 Create `src/App.tsx` with Amplify configuration wrapper and Authenticator": [
+      {
+        "executionId": "a7e0b3bf-fa2e-4f34-be09-e2a209648de9",
+        "chatSessionId": "sess_f78f294c-75a8-41aa-a953-3e9b5c4c7049",
+        "timestamp": 1792173950911
+      },
+      {
+        "executionId": "a7e0b3bf-fa2e-4f34-be09-e2a209648de9",
+        "chatSessionId": "sess_f78f294c-75a8-41aa-a953-3e9b5c4c7049",
+        "timestamp": 1792174004134
+      }
+    ],
+    "10.2 Create stub frontend components": [
+      {
+        "executionId": "a7e0b3bf-fa2e-4f34-be09-e2a209648de9",
+        "chatSessionId": "sess_f78f294c-75a8-41aa-a953-3e9b5c4c7049",
+        "timestamp": 1792174007640
+      },
+      {
+        "executionId": "a7e0b3bf-fa2e-4f34-be09-e2a209648de9",
+        "chatSessionId": "sess_f78f294c-75a8-41aa-a953-3e9b5c4c7049",
+        "timestamp": 1792174090528
+      }
+    ],
+    "10. Scaffold frontend React components": [
+      {
+        "executionId": "a7e0b3bf-fa2e-4f34-be09-e2a209648de9",
+        "chatSessionId": "sess_f78f294c-75a8-41aa-a953-3e9b5c4c7049",
+        "timestamp": 1792174090605
+      }
+    ],
+    "11.1 Install Vitest and fast-check; configure test runner": [
+      {
+        "executionId": "6bba8c09-3650-4489-97e6-851369a2fcee",
+        "chatSessionId": "sess_f887e92f-1ee3-4dbb-9b0e-35a0f1da4bb4",
+        "timestamp": 1792174109588
+      },
+      {
+        "executionId": "6bba8c09-3650-4489-97e6-851369a2fcee",
+        "chatSessionId": "sess_f887e92f-1ee3-4dbb-9b0e-35a0f1da4bb4",
+        "timestamp": 1792174542193
+      }
+    ],
+    "11.2 Write property tests for key-pattern round-trips (Properties 1, 2, 3, 12)": [
+      {
+        "executionId": "6bba8c09-3650-4489-97e6-851369a2fcee",
+        "chatSessionId": "sess_f887e92f-1ee3-4dbb-9b0e-35a0f1da4bb4",
+        "timestamp": 1792174546091
+      },
+      {
+        "executionId": "6bba8c09-3650-4489-97e6-851369a2fcee",
+        "chatSessionId": "sess_f887e92f-1ee3-4dbb-9b0e-35a0f1da4bb4",
+        "timestamp": 1792174616769
+      }
+    ],
+    "11. Set up property-based testing and implement all 12 correctness property tests": [
+      {
+        "executionId": "6bba8c09-3650-4489-97e6-851369a2fcee",
+        "chatSessionId": "sess_f887e92f-1ee3-4dbb-9b0e-35a0f1da4bb4",
+        "timestamp": 1792174616822
+      }
+    ],
+    "12. Final checkpoint — compile all sources and run the full test suite": [
+      {
+        "executionId": "8f7f3e58-721e-4349-b9d4-358300d072b3",
+        "chatSessionId": "sess_53af4c1f-9873-4f23-a6cf-7517922ac92e",
+        "timestamp": 1792174640613
+      },
+      {
+        "executionId": "8f7f3e58-721e-4349-b9d4-358300d072b3",
+        "chatSessionId": "sess_53af4c1f-9873-4f23-a6cf-7517922ac92e",
+        "timestamp": 1792174707780
+      }
+    ],
+    "11.3 Write property test for TTL population invariant (Property 4)": [
+      {
+        "executionId": "8a650655-a618-4bd8-b1fa-c329146b66d1",
+        "chatSessionId": "sess_8c405ce9-8428-4a0a-8b00-040f1eac5c7d",
+        "timestamp": 1792176093637
+      },
+      {
+        "executionId": "8a650655-a618-4bd8-b1fa-c329146b66d1",
+        "chatSessionId": "sess_8c405ce9-8428-4a0a-8b00-040f1eac5c7d",
+        "timestamp": 1792176165584
+      }
+    ],
+    "11.4 Write property tests for GSI key population invariants (Properties 5, 6)": [
+      {
+        "executionId": "1d1784d8-732e-419d-a25f-cadc95fb363a",
+        "chatSessionId": "sess_2c1717a6-1981-4672-9e13-c168f6b03685",
+        "timestamp": 1792176173890
+      },
+      {
+        "executionId": "1d1784d8-732e-419d-a25f-cadc95fb363a",
+        "chatSessionId": "sess_2c1717a6-1981-4672-9e13-c168f6b03685",
+        "timestamp": 1792176243034
+      }
+    ],
+    "11.5 Write property tests for AgentCore, Guardrail, score bounds, S3 URI, and geohash (Properties 7–11)": [
+      {
+        "executionId": "9675b99d-aac2-4074-b375-5514abeae8e4",
+        "chatSessionId": "sess_273102cb-f0ea-4ad7-bbe9-50d1f3543412",
+        "timestamp": 1792176251479
+      },
+      {
+        "executionId": "9675b99d-aac2-4074-b375-5514abeae8e4",
+        "chatSessionId": "sess_273102cb-f0ea-4ad7-bbe9-50d1f3543412",
+        "timestamp": 1792176384354
+      }
+    ]
+  }
+}

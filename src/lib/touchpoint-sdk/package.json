@@ -1,0 +1,12 @@
+{
+  "name": "@amazon-connect/touchpoint-sdk",
+  "version": "0.0.1",
+  "description": "Local stub for @amazon-connect/touchpoint-sdk — replace with official SDK when available",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "private": true
+}
