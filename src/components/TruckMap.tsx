@@ -294,7 +294,7 @@ export default function TruckMap({ className, customerLat, customerLng, onLocate
       } else {
         const el = makeTruckMarkerEl(operationalStatus);
         el.title = operationalStatus;
-        const popupHtml = (status: string, lat: number, lng: number) =>
+        const popupHtml = (lat: number, lng: number) =>
           `<div style="font-family:system-ui;font-size:12px;line-height:1.7;min-width:140px">
             <strong>${truckId}</strong><br/>
             Status:&nbsp;<strong style="color:${operationalStatus === 'AVAILABLE' ? '#16a34a' : operationalStatus === 'DISPATCHED' ? '#FF9900' : '#64748b'}">${operationalStatus}</strong><br/>
@@ -302,7 +302,7 @@ export default function TruckMap({ className, customerLat, customerLng, onLocate
           </div>`;
         const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat(lngLat)
-          .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml(operationalStatus, currentLat, currentLong)))
+          .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml(currentLat, currentLong)))
           .addTo(map);
         markersRef.current.set(truckId, marker);
       }
