@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-
 export default defineConfig({
   test: {
     globals: true,
@@ -9,6 +8,7 @@ export default defineConfig({
       'src/__tests__/**/*.test.tsx',
       'amplify/__tests__/**/*.test.ts',
     ],
+    setupFiles: ['./src/__tests__/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

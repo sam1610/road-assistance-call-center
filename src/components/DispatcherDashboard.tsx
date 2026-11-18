@@ -33,8 +33,11 @@ export default function DispatcherDashboard({ incidentId = '' }: DispatcherDashb
     let subscription: { unsubscribe: () => void } | null = null;
 
     try {
-      subscription = client.graphql({
-        // @ts-ignore — schema types are only available after sandbox generation
+      // Cast to `any` because TypeScript can't statically narrow the
+      // Observable | Promise union returned by client.graphql() when the
+      // schema types aren't available (sandbox not yet generated).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const observable = (client as any).graphql({
         query: `subscription OnIncidentLiveUpdate($incidentId: String!) {
           onIncidentLiveUpdate(incidentId: $incidentId) {
             incidentId
@@ -44,7 +47,9 @@ export default function DispatcherDashboard({ incidentId = '' }: DispatcherDashb
           }
         }`,
         variables: { incidentId },
-      }).subscribe({
+      });
+
+      subscription = observable.subscribe({
         next: ({ data }: { data: { onIncidentLiveUpdate: IncidentLiveUpdate } }) => {
           setLiveUpdate(data.onIncidentLiveUpdate);
           setConnected(true);

@@ -4,6 +4,8 @@ import { locateAndFindNearestTruckFn } from '../functions/acxd-resolvers/locateA
 import { confirmDispatchAndGeofenceFn } from '../functions/acxd-resolvers/confirmDispatchAndGeofence/resource';
 import { wrapUpIncidentAnalyticsFn } from '../functions/acxd-resolvers/wrapUpIncidentAnalytics/resource';
 import { updateTruckTelemetryFn } from '../functions/acxd-resolvers/updateTruckTelemetry/resource';
+import { publishIncidentLiveUpdateFn } from '../functions/acxd-resolvers/publishIncidentLiveUpdate/resource';
+import { startConnectSessionFn } from '../functions/acxd-resolvers/startConnectSession/resource';
 
 /**
  * Single-Table DynamoDB schema for the Road Assistance Agentic Call Center.
@@ -30,8 +32,10 @@ const schema = a.schema({
     incidentId: a.string(),
     customerId: a.string(),
     customerPhone: a.string(),
+    customerName: a.string(),     // resolved from profile driverName / customerName; 'Guest' if unknown
     membershipTier: a.string(),
     defaultPlate: a.string(),
+    locationGeohash: a.string(),
     agentCoreMemoryId: a.string(),
     agentCoreActorIdCustomer: a.string(),
     agentCoreActorIdVehicle: a.string(),
@@ -45,6 +49,8 @@ const schema = a.schema({
     truckId: a.string(),
     estimatedArrivalMinutes: a.integer(),
     truckType: a.string(),
+    driverName: a.string(),
+    driverPhone: a.string(),
   }),
 
   /**
@@ -93,6 +99,16 @@ const schema = a.schema({
     guardrailIdAndVersion: a.string(),
   }),
 
+  /**
+   * Result returned to the frontend after initiating a WebRTC or Chat contact
+   * through Amazon Connect.  `connectionDataJson` contains the serialised
+   * ConnectionData object needed by the Amazon Connect Streams SDK.
+   */
+  ConnectSessionResult: a.customType({
+    contactId: a.string(),
+    connectionDataJson: a.string(),
+  }),
+
   // ─── Custom Queries and Mutations (Requirements: 6.2, 6.4–6.8, 2.3, 2.4) ──
 
   /**
@@ -107,9 +123,17 @@ const schema = a.schema({
     .arguments({
       contactId: a.string().required(),
       customerIdentifier: a.string().required(),
+      plateNumber: a.string(),
+      incidentType: a.string(),
+      incidentDescription: a.string(),
+      locationGeohash: a.string(),
     })
     .returns(a.ref('IncidentMemoryContext'))
-    .authorization(allow => [allow.authenticated('identityPool')])
+    .authorization((allow:  any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
     .handler(a.handler.function(syncIncidentAndMemoryFn)),
 
   /**
@@ -128,7 +152,11 @@ const schema = a.schema({
       locationGeohash: a.string().required(),
     })
     .returns(a.ref('NearestTruckResult'))
-    .authorization(allow => [allow.authenticated('identityPool')])
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
     .handler(a.handler.function(locateAndFindNearestTruckFn)),
 
   // ─── Custom Mutations (Requirements: 6.5, 6.6, 6.8, 2.3, 2.4) ──────────
@@ -149,7 +177,11 @@ const schema = a.schema({
       truckId: a.string().required(),
     })
     .returns(a.ref('DispatchConfirmation'))
-    .authorization(allow => [allow.authenticated('identityPool')])
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
     .handler(a.handler.function(confirmDispatchAndGeofenceFn)),
 
   /**
@@ -167,7 +199,11 @@ const schema = a.schema({
       wrapUpInput: a.ref('WrapUpInput').required(),
     })
     .returns(a.ref('AnalyticsWrapUpResult'))
-    .authorization(allow => [allow.authenticated('identityPool')])
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
     .handler(a.handler.function(wrapUpIncidentAnalyticsFn)),
 
   /**
@@ -187,8 +223,33 @@ const schema = a.schema({
       operationalStatus: a.string().required(),
     })
     .returns(a.boolean())
-    .authorization(allow => [allow.authenticated('identityPool')])
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
     .handler(a.handler.function(updateTruckTelemetryFn)),
+
+  /**
+   * Called by the Customer View to initiate a WebRTC voice call or Chat
+   * session via Amazon Connect.  Returns a ConnectSessionResult so the
+   * frontend can wire up the Amazon Connect Streams SDK.
+   */
+  startConnectSession: a
+    .mutation()
+    .arguments({
+      channel: a.string().required(),
+      customerIdentifier: a.string().required(),
+      plateNumber: a.string().required(),
+      locationGeohash: a.string().required(),
+    })
+    .returns(a.ref('ConnectSessionResult'))
+    .authorization((allow: any) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(startConnectSessionFn)),
 
   // ─── Custom Subscriptions (Requirements: 6.9) ────────────────────────────
 
@@ -210,7 +271,12 @@ const schema = a.schema({
       etaMinutes: a.integer().required(),
     })
     .returns(a.ref('IncidentLiveUpdate'))
-    .authorization(allow => [allow.authenticated('identityPool')]),
+    .authorization((allow: any) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(publishIncidentLiveUpdateFn)),
 
   /**
    * Real-time subscription pushed to the dispatcher dashboard.
@@ -231,7 +297,8 @@ const schema = a.schema({
     .subscription()
     .for(a.ref('publishIncidentLiveUpdate'))
     .arguments({ incidentId: a.string().required() })
-    .authorization(allow => [allow.authenticated('identityPool')]),
+    .handler(a.handler.custom({ entry: './receive.js' }))
+    .authorization(allow => [allow.authenticated()]),
 
   // ─── Main Model ────────────────────────────────────────────────────────────
 
@@ -251,6 +318,23 @@ const schema = a.schema({
       // Unix epoch (seconds) for DynamoDB TTL; populated only for
       // CALL_INTERACTION_LOG and TRUCK_DISPATCH_LOG entities.
       expiresAt: a.integer(),
+
+      // ─── Overloaded status + date fields — top-level for GSI indexing ────
+      // Trucks: AVAILABLE | DISPATCHED | OFFLINE
+      // Incidents: INTAKE | DISPATCHED | RESOLVED | ESCALATED_TO_HUMAN
+      // Customers: GUEST | GOLD
+      status: a.string(),
+      // ISO-8601 creation timestamp for chronological GSI sort
+      recordCreatedAt: a.string(),
+
+      // ─── Promoted incident / customer fields (no longer buried in data blob) ──
+      incidentType: a.string(),
+      incidentDescription: a.string(),   // raw customer description of the issue
+      customerPhone: a.string(),
+      incidentPlate: a.string(),
+      coveredByPolicy: a.boolean(),
+      dispatchFeeAmount: a.float(),
+      paymentStatus: a.string(),
 
       // ─── GSI Key Attributes ───────────────────────────────────────────────
       // GSI1 (CustomerActiveIncidentIndex): customer ↔ active incident lookup
@@ -316,7 +400,17 @@ const schema = a.schema({
       // Access pattern: full incident history for a specific vehicle (plate).
       // Sparse — only INCIDENT_METADATA records with a linked vehicle are indexed.
       index('GSI5PK').sortKeys(['GSI5SK']).name('VehicleIncidentHistoryIndex'),
+      // GSI6: EntityStatusIndex — query by entityType + status (eliminates scans)
+      index('entityType').sortKeys(['status']).name('EntityStatusIndex'),
+      // GSI7: EntityDateIndex — query by entityType sorted by creation date (DESC)
+      index('entityType').sortKeys(['recordCreatedAt']).name('EntityDateIndex'),
+    ])
+    .authorization((allow: any) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
     ]),
+    
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -324,9 +418,9 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    // IAM auth is the primary mode; Cognito JWT is validated by AppSync.
-    // Additional authorization modes (e.g., userPool) may be layered in here
-    // once the auth resource is wired into `amplify/backend.ts`.
     defaultAuthorizationMode: 'iam',
+    apiKeyAuthorizationMode: {
+      expiresInDays: 90,
+    },
   },
 });

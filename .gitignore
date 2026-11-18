@@ -1,0 +1,5 @@
+.amplify
+.kiro
+dist
+src/lib/*
+node_modules/

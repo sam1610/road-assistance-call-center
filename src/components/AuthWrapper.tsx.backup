@@ -1,0 +1,595 @@
+// src/components/AuthWrapper.tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../amplify/data/resource';
+import {
+  DefaultDeviceController,
+  DefaultMeetingSession,
+  ConsoleLogger,
+  LogLevel,
+  MeetingSessionConfiguration,
+  MeetingSession as ChimeMeetingSession,
+} from 'amazon-chime-sdk-js';
+
+// Initialize Amplify GraphQL client
+const client = generateClient<Schema>();
+
+// Type definitions
+type PersonaType = 'CUSTOMER' | 'SUPERVISOR' | 'TRUCK_DRIVER';
+type ChannelType = 'VOICE' | 'CHAT';
+
+interface LogEntry {
+  timestamp: Date;
+  level: 'INFO' | 'ERROR' | 'WARN';
+  message: string;
+}
+
+interface ChatMessage {
+  sender: 'me' | 'agent' | 'system';
+  text: string;
+  timestamp: Date;
+}
+
+interface AuthWrapperProps {
+  children?: React.ReactNode;
+}
+
+export default function AuthWrapper({ children }: AuthWrapperProps) {
+  // Persona and session parameters
+  const [activePersona, setActivePersona] = useState<PersonaType>('CUSTOMER');
+  const [customerPhone, setCustomerPhone] = useState('+973-33001122');
+  const [carPlate, setCarPlate] = useState('BHR-1001');
+  const [geohashInput, setGeohashInput] = useState('thev0z');
+
+  // Connect session tracking
+  const [activeContactId, setActiveContactId] = useState<string | null>(null);
+  const [activeChannel, setActiveChannel] = useState<ChannelType | null>(null);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Incident data and subscriptions
+  const [activeIncident, setActiveIncident] = useState<any | null>(null);
+  const [liveUpdates, setLiveUpdates] = useState<any[]>([]);
+
+  // UI tracking
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [executionLog, setExecutionLog] = useState<LogEntry[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Refs for SDK instances
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const meetingSessionRef = useRef<ChimeMeetingSession | null>(null);
+  const chatSessionRef = useRef<any | null>(null);
+  const subscriptionRef = useRef<any | null>(null);
+
+  // Helper function to append execution log entries
+  const appendLog = (message: string, level: 'INFO' | 'ERROR' | 'WARN' = 'INFO') => {
+    setExecutionLog((prev) => [
+      ...prev,
+      { timestamp: new Date(), level, message },
+    ]);
+  };
+
+  // Handler: Start WebRTC Voice Call
+  const handleStartVoiceCall = async () => {
+    if (!customerPhone || !carPlate || !geohashInput) {
+      appendLog('Validation failed: All fields are required', 'ERROR');
+      alert('Please fill in all fields: Phone, Plate, and Location');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      appendLog(`[WEBRTC] Initiating voice call for ${customerPhone}...`, 'INFO');
+
+      const result = await client.mutations.startConnectSession({
+        channel: 'VOICE',
+        customerIdentifier: customerPhone,
+        plateNumber: carPlate,
+        locationGeohash: geohashInput,
+      });
+
+      if (result.data) {
+        const { contactId, connectionDataJson } = result.data;
+        appendLog(`[WEBRTC] Session started — Contact ID: ${contactId}`, 'INFO');
+
+        // Parse connection data
+        const connData = JSON.parse(connectionDataJson || '{}');
+        const meetingData = connData.ConnectionData?.Meeting;
+        const attendeeData = connData.ConnectionData?.Attendee;
+
+        if (!meetingData || !attendeeData) {
+          throw new Error('Invalid connection data: Missing Meeting or Attendee');
+        }
+
+        // Create MeetingSessionConfiguration
+        const configuration = new MeetingSessionConfiguration(meetingData, attendeeData);
+
+        // Initialize MeetingSession
+        const logger = new ConsoleLogger('MeetingLogs', LogLevel.INFO);
+        const deviceController = new DefaultDeviceController(logger);
+        const meetingSession = new DefaultMeetingSession(configuration, logger, deviceController);
+
+        // Request microphone permission
+        appendLog('[WEBRTC] Requesting microphone permission...', 'INFO');
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Bind audio element
+        const audioElement = remoteAudioRef.current;
+        if (audioElement) {
+          meetingSession.audioVideo.bindAudioElement(audioElement);
+          appendLog('[WEBRTC] Audio element bound', 'INFO');
+        }
+
+        // Start WebRTC session
+        await meetingSession.audioVideo.start();
+        appendLog('[WEBRTC] Audio session started', 'INFO');
+
+        // Update state
+        setActiveContactId(contactId || null);
+        setActiveChannel('VOICE');
+        setIsCallActive(true);
+        meetingSessionRef.current = meetingSession;
+
+        // Sync incident data
+        if (contactId) {
+          await syncIncidentAndMemory(contactId, customerPhone);
+        }
+      }
+    } catch (error: any) {
+      appendLog(`[WEBRTC] Error: ${error.message}`, 'ERROR');
+      alert(`Failed to start voice call: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handler: Start Chat Session
+  const handleStartChat = async () => {
+    if (!customerPhone || !carPlate || !geohashInput) {
+      appendLog('Validation failed: All fields are required', 'ERROR');
+      alert('Please fill in all fields: Phone, Plate, and Location');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      appendLog(`[CHAT] Initiating chat session for ${customerPhone}...`, 'INFO');
+
+      const result = await client.mutations.startConnectSession({
+        channel: 'CHAT',
+        customerIdentifier: customerPhone,
+        plateNumber: carPlate,
+        locationGeohash: geohashInput,
+      });
+
+      if (result.data) {
+        const { contactId, connectionDataJson } = result.data;
+        appendLog(`[CHAT] Session started — Contact ID: ${contactId}`, 'INFO');
+
+        // Parse chat credentials
+        const chatCreds = JSON.parse(connectionDataJson || '{}');
+        appendLog(`[CHAT] Credentials received: ${JSON.stringify(chatCreds)}`, 'INFO');
+
+        // Update state
+        setActiveContactId(contactId || null);
+        setActiveChannel('CHAT');
+
+        // Sync incident data
+        if (contactId) {
+          await syncIncidentAndMemory(contactId, customerPhone);
+        }
+
+        // Note: Full ChatSession initialization would go here if amazon-connect-chatjs is loaded
+        appendLog('[CHAT] Chat session initialized (ChatJS SDK pending full integration)', 'WARN');
+      }
+    } catch (error: any) {
+      appendLog(`[CHAT] Error: ${error.message}`, 'ERROR');
+      alert(`Failed to start chat session: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sync incident and memory
+  const syncIncidentAndMemory = async (contactId: string, customerIdentifier: string) => {
+    try {
+      appendLog(`[SYNC] Syncing incident for contact ${contactId}...`, 'INFO');
+
+      const result = await client.queries.syncIncidentAndMemory({
+        contactId,
+        customerIdentifier,
+      });
+
+      if (result.data) {
+        setActiveIncident(result.data);
+        appendLog(
+          `[SYNC] Incident synced: ${result.data.incidentId} | Customer: ${result.data.customerId} | Tier: ${result.data.membershipTier}`,
+          'INFO'
+        );
+      }
+    } catch (error: any) {
+      appendLog(`[SYNC] Error: ${error.message}`, 'ERROR');
+    }
+  };
+
+  // Subscription setup: Listen for incident live updates
+  useEffect(() => {
+    if (!activeIncident?.incidentId) {
+      return;
+    }
+
+    const logMessage = (msg: string, level: 'INFO' | 'ERROR' = 'INFO') => {
+      setExecutionLog((prev) => [
+        ...prev,
+        { timestamp: new Date(), level, message: msg },
+      ]);
+    };
+
+    logMessage(`[SUBSCRIPTION] Subscribing to incident ${activeIncident.incidentId}...`, 'INFO');
+
+    const sub = client.subscriptions
+      .onIncidentLiveUpdate({ incidentId: activeIncident.incidentId })
+      .subscribe({
+        next: (data) => {
+          logMessage(`[SUBSCRIPTION] Received update: ${JSON.stringify(data)}`, 'INFO');
+          setLiveUpdates((prev) => [...prev, data]);
+        },
+        error: (err) => {
+          console.error('Subscription error:', err);
+          logMessage(`[SUBSCRIPTION] Error: ${err.message || 'Unknown error'}`, 'ERROR');
+        },
+      });
+
+    subscriptionRef.current = sub;
+
+    return () => {
+      logMessage('[SUBSCRIPTION] Unsubscribing from incident updates', 'INFO');
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
+    };
+  }, [activeIncident?.incidentId]);
+
+  // Handler: Toggle Mute
+  const handleToggleMute = () => {
+    if (meetingSessionRef.current) {
+      if (isMuted) {
+        meetingSessionRef.current.audioVideo.realtimeUnmuteLocalAudio();
+        setIsMuted(false);
+        appendLog('[WEBRTC] Microphone unmuted', 'INFO');
+      } else {
+        meetingSessionRef.current.audioVideo.realtimeMuteLocalAudio();
+        setIsMuted(true);
+        appendLog('[WEBRTC] Microphone muted', 'INFO');
+      }
+    }
+  };
+
+  // Handler: End Call
+  const handleEndCall = () => {
+    if (meetingSessionRef.current) {
+      meetingSessionRef.current.audioVideo.stop();
+      meetingSessionRef.current = null;
+    }
+
+    setIsCallActive(false);
+    setActiveContactId(null);
+    setActiveChannel(null);
+    setIsMuted(false);
+    appendLog('[WEBRTC] Call ended', 'INFO');
+  };
+
+  // Handler: Send Chat Message
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+
+    const message: ChatMessage = {
+      sender: 'me',
+      text: chatInput,
+      timestamp: new Date(),
+    };
+
+    setChatMessages((prev) => [...prev, message]);
+    appendLog(`[CHAT] Message sent: ${chatInput}`, 'INFO');
+    setChatInput('');
+
+    // If ChatSession is initialized, send via SDK
+    // chatSessionRef.current?.sendMessage({ message: chatInput, contentType: 'text/plain' });
+  };
+
+  // Handler: End Chat
+  const handleEndChat = () => {
+    if (chatSessionRef.current) {
+      chatSessionRef.current.disconnect();
+      chatSessionRef.current = null;
+    }
+
+    setActiveContactId(null);
+    setActiveChannel(null);
+    setChatMessages([]);
+    appendLog('[CHAT] Chat session ended', 'INFO');
+  };
+
+  // Cleanup on persona switch
+  useEffect(() => {
+    if (activePersona !== 'CUSTOMER') {
+      if (isCallActive) handleEndCall();
+      if (activeChannel === 'CHAT') handleEndChat();
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+    }
+  }, [activePersona]);
+
+  return (
+    <Authenticator loginMechanisms={['email', 'phone_number']}>
+      {({ signOut, user }) => (
+        <div className="min-h-screen bg-slate-900 text-slate-100">
+          {/* Header */}
+          <header className="flex items-center justify-between px-6 py-4 bg-slate-800 border-b border-slate-700">
+            <div>
+              <h1 className="text-xl font-bold text-white">
+                Road Assistance Agentic Call Center
+              </h1>
+              <p className="text-xs text-slate-400">
+                Signed in as: {user?.signInDetails?.loginId || user?.username}
+              </p>
+            </div>
+            <button
+              onClick={signOut}
+              className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded hover:bg-red-500"
+            >
+              Sign Out
+            </button>
+          </header>
+
+          {/* Persona Selector */}
+          <div className="px-6 py-4 bg-slate-800 border-b border-slate-700">
+            <div className="flex gap-4">
+              {(['CUSTOMER', 'SUPERVISOR', 'TRUCK_DRIVER'] as PersonaType[]).map((persona) => (
+                <button
+                  key={persona}
+                  onClick={() => setActivePersona(persona)}
+                  className={`px-4 py-2 text-sm font-semibold rounded ${
+                    activePersona === persona
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {persona.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <main className="p-6">
+            {activePersona === 'CUSTOMER' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Panel: Customer Contact Controls */}
+                <div className="space-y-6">
+                  {/* Input Fields */}
+                  <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+                    <h2 className="text-lg font-bold mb-4">📋 Customer Information</h2>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">📞 Customer Phone</label>
+                        <input
+                          type="text"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          placeholder="+15551234567"
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">🚗 Car Plate</label>
+                        <input
+                          type="text"
+                          value={carPlate}
+                          onChange={(e) => setCarPlate(e.target.value)}
+                          placeholder="ABC123"
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">📍 Location Geohash (6 chars)</label>
+                        <input
+                          type="text"
+                          value={geohashInput}
+                          onChange={(e) => setGeohashInput(e.target.value)}
+                          placeholder="dqcjr0"
+                          maxLength={6}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Buttons */}
+                  <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+                    <h2 className="text-lg font-bold mb-4">📞 Omnichannel Contact</h2>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={handleStartVoiceCall}
+                        disabled={isLoading || isCallActive || activeChannel === 'CHAT'}
+                        className="flex-1 px-4 py-3 text-sm font-semibold bg-green-600 text-white rounded hover:bg-green-500 disabled:bg-slate-600 disabled:cursor-not-allowed"
+                      >
+                        {isLoading && activeChannel === null ? '⏳ Starting...' : '📞 Start WebRTC Call'}
+                      </button>
+                      <button
+                        onClick={handleStartChat}
+                        disabled={isLoading || isCallActive || activeChannel === 'CHAT'}
+                        className="flex-1 px-4 py-3 text-sm font-semibold bg-blue-600 text-white rounded hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed"
+                      >
+                        {isLoading && activeChannel === 'CHAT' ? '⏳ Starting...' : '💬 Start Live Web Chat'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Session Status */}
+                  {isCallActive && activeChannel === 'VOICE' && (
+                    <div className="bg-red-900 border border-red-700 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-lg font-bold text-white">
+                            🔴 LIVE WEBRTC VOICE SESSION
+                          </p>
+                          <p className="text-sm text-red-200">Contact ID: {activeContactId}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={handleToggleMute}
+                          className="flex-1 px-4 py-2 text-sm font-semibold bg-yellow-600 text-white rounded hover:bg-yellow-500"
+                        >
+                          {isMuted ? '🔊 Unmute' : '🔇 Mute'}
+                        </button>
+                        <button
+                          onClick={handleEndCall}
+                          className="flex-1 px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-500"
+                        >
+                          ❌ End Call
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat Drawer */}
+                  {activeChannel === 'CHAT' && (
+                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-lg font-bold text-white">💬 LIVE CHAT SESSION</p>
+                          <p className="text-sm text-slate-400">Contact ID: {activeContactId}</p>
+                        </div>
+                        <button
+                          onClick={handleEndChat}
+                          className="px-3 py-1 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-500"
+                        >
+                          ❌ End Chat
+                        </button>
+                      </div>
+
+                      {/* Message List */}
+                      <div className="h-64 overflow-y-auto bg-slate-900 rounded p-4 mb-4 space-y-2">
+                        {chatMessages.map((msg, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-2 rounded ${
+                              msg.sender === 'me'
+                                ? 'bg-blue-600 text-white ml-auto max-w-xs'
+                                : 'bg-slate-700 text-slate-100 mr-auto max-w-xs'
+                            }`}
+                          >
+                            <p className="text-sm">{msg.text}</p>
+                            <p className="text-xs opacity-70">{msg.timestamp.toLocaleTimeString()}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Message Input */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                          placeholder="Type a message..."
+                          className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100"
+                        />
+                        <button
+                          onClick={handleSendMessage}
+                          className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded hover:bg-blue-500"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hidden Audio Element for WebRTC */}
+                  <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
+                </div>
+
+                {/* Right Panel: Live Customer Tracker */}
+                <div className="space-y-6">
+                  {/* Live Tracker Card */}
+                  <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+                    <h2 className="text-lg font-bold mb-4">📡 Live Customer Tracker & AI Agent Summary</h2>
+                    {activeIncident ? (
+                      <div className="space-y-4">
+                        <div className="bg-slate-900 rounded p-4">
+                          <h3 className="text-sm font-semibold text-blue-400 mb-2">Incident Details</h3>
+                          <div className="text-sm space-y-1">
+                            <p><span className="text-slate-400">Incident ID:</span> {activeIncident.incidentId}</p>
+                            <p><span className="text-slate-400">Customer ID:</span> {activeIncident.customerId}</p>
+                            <p><span className="text-slate-400">Phone:</span> {activeIncident.customerPhone}</p>
+                            <p><span className="text-slate-400">Membership Tier:</span> {activeIncident.membershipTier}</p>
+                            <p><span className="text-slate-400">Plate:</span> {activeIncident.defaultPlate}</p>
+                          </div>
+                        </div>
+
+                        {/* Live Updates */}
+                        {liveUpdates.length > 0 && (
+                          <div className="bg-slate-900 rounded p-4">
+                            <h3 className="text-sm font-semibold text-green-400 mb-2">🔴 Live Updates</h3>
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                              {liveUpdates.map((update, idx) => (
+                                <div key={idx} className="p-2 bg-slate-800 rounded text-sm">
+                                  <p><span className="text-slate-400">Status:</span> {update.incidentStatus}</p>
+                                  <p><span className="text-slate-400">Truck Location:</span> {update.truckLocationGeohash}</p>
+                                  <p><span className="text-slate-400">ETA:</span> {update.etaMinutes} min</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 text-sm">No active incident. Start a session to sync incident data.</p>
+                    )}
+                  </div>
+
+                  {/* Execution Log */}
+                  <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+                    <h2 className="text-lg font-bold mb-4">📋 Execution Log</h2>
+                    <div className="h-96 overflow-y-auto bg-slate-900 rounded p-4 font-mono text-xs space-y-1">
+                      {executionLog.map((entry, idx) => (
+                        <div key={idx} className={`${
+                          entry.level === 'ERROR' ? 'text-red-400' :
+                          entry.level === 'WARN' ? 'text-yellow-400' :
+                          'text-green-400'
+                        }`}>
+                          <span className="text-slate-500">[{entry.timestamp.toLocaleTimeString()}]</span>{' '}
+                          <span className="text-slate-400">{entry.level}</span>{' '}
+                          {entry.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+                <h2 className="text-lg font-bold mb-4">
+                  {activePersona === 'SUPERVISOR' ? '👔 Supervisor View' : '🚛 Truck Driver View'}
+                </h2>
+                <p className="text-slate-400">
+                  {activePersona} view is not yet implemented. This is a placeholder for future development.
+                </p>
+              </div>
+            )}
+
+            {/* Children (original content) */}
+            {children}
+          </main>
+        </div>
+      )}
+    </Authenticator>
+  );
+}

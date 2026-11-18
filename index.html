@@ -4,6 +4,95 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Road Assistance Call Center</title>
+
+    <!--
+      Amazon Connect Communications Widget
+      Widget ID  : 955c0b08-3441-4e0f-af41-4467bd74c1c4
+      The widget renders its own chat panel (chat bubbles + input) and
+      voice call screen (logo + timer + Speaking) natively — same as
+      the KSA VISA / Labeah pattern. No custom rendering needed.
+      Our FAB calls amazon_connect('open') to open the native panel.
+    -->
+    <script type="text/javascript">
+      (function(w, d, x, id){
+        s=d.createElement('script');
+        s.src='https://agentaicallcenter-bh.my.connect.aws/connectwidget/static/amazon-connect-chat-interface-client.js';
+        s.async=1;
+        s.id=id;
+        d.getElementsByTagName('head')[0].appendChild(s);
+        w[x] = w[x] || function() { (w[x].ac = w[x].ac || []).push(arguments) };
+      })(window, document, 'amazon_connect', '955c0b08-3441-4e0f-af41-4467bd74c1c4');
+
+      amazon_connect('styles', {
+        iconType: 'CHAT_VOICE',
+        openChat:  { color: '#ffffff', backgroundColor: '#16a34a' },
+        closeChat: { color: '#ffffff', backgroundColor: '#0f4c35' }
+      });
+
+      amazon_connect('snippetId', 'QVFJREFIaEZ5ZjhlbTkwTGlJQ0RQVlozbFpkalBOMm91NWh2aGNUZHZhTTZac1lEMndHUkxObjJLc3Ywa2JzZHgvNjgwSXAzQUFBQWJqQnNCZ2txaGtpRzl3MEJCd2FnWHpCZEFnRUFNRmdHQ1NxR1NJYjNEUUVIQVRBZUJnbGdoa2dCWlFNRUFTNHdFUVFNdXlaaVJUN0xlZE9admNzYkFnRVFnQ3NiR01mWGpLc0pPeEVHd0U2VXVPd05zeXQrbVF1Tng4b0RxcmM5Z21wY2I0ZkFTRXVERlBlQzZmNjY6OnFYbVUwdWZNUXFmQ09wMmthaXI3a2h0UEJLTDNNSkRxa3B5ZEtRNkQzdGRoSk9UN1EwWktJaGJtZy9ObHk2aVZ2OW5NMVkvU1kvNmtJSG1Wc1pQSVhBVmZxamd4TWN6UnRNZUwrRHlZWUJEMkpuVmRvRUgvK1BBYVppQ3hVM0NDQlduVlZSNXlLV3VJM2xTKzMzQnI3dlVZQVhpeE54OD0=');
+
+      amazon_connect('supportedMessagingContentTypes', [
+        'text/plain',
+        'text/markdown',
+        'application/vnd.amazonaws.connect.message.interactive',
+        'application/vnd.amazonaws.connect.message.interactive.response'
+      ]);
+
+      // NOTE: alwaysHideWidgetButton is NOT set here.
+      // The native Connect widget launcher button is visible.
+
+      // ── Geolocation injection for the native FAB button ─────────────────
+      // window.__connectGeohash is a live slot kept in sync by two writers:
+      //   1. App.tsx useEffect([geohashInput]) — fires whenever GPS or map updates
+      //   2. TruckMap onLocate callback — fires on every watchPosition tick
+      //
+      // We register contactAttributes with a getter so the value is read AT THE
+      // MOMENT the widget initiates the contact — not at script-parse time.
+      // This guarantees the FAB always sends the current GPS geohash.
+      // Falls back to the Manama city-center default if GPS is denied.
+      //
+      // NOTE: amazon-connect-chat-interface-client.js does NOT execute function
+      // callbacks passed to amazon_connect('contactAttributes', fn). Instead we
+      // use Object.defineProperty with a get() accessor on a plain object so the
+      // widget reads the live value when it constructs the StartChatContact call.
+      // window.__connect* slots are written by App.tsx in real-time:
+      //   __connectGeohash       ← from TruckMap watchPosition / geohashInput state
+      //   __connectCustomerId    ← from customerPhone state
+      //   __connectPlateNumber   ← from carPlate state
+      //   __connectIncidentType  ← from incidentType state
+      //   __connectDescription   ← from incidentDescription state
+      //
+      // Object.defineProperty getters are evaluated at contact-initiation time
+      // (when the widget calls StartChatContact), not at script-parse time.
+      (function() {
+        var attrs = {};
+        Object.defineProperty(attrs, 'locationGeohash', {
+          get: function() { return window.__connectGeohash     || 'thev0z'; },
+          enumerable: true,
+        });
+        Object.defineProperty(attrs, 'customerPhone', {
+          get: function() { return window.__connectCustomerId  || 'guest'; },
+          enumerable: true,
+        });
+        Object.defineProperty(attrs, 'plateNumber', {
+          get: function() { return window.__connectPlateNumber || 'UNKNOWN'; },
+          enumerable: true,
+        });
+        Object.defineProperty(attrs, 'incidentType', {
+          get: function() { return window.__connectIncidentType || 'UNKNOWN'; },
+          enumerable: true,
+        });
+        Object.defineProperty(attrs, 'incidentDescription', {
+          get: function() { return window.__connectDescription  || 'None provided'; },
+          enumerable: true,
+        });
+        Object.defineProperty(attrs, 'contactSource', {
+          get: function() { return 'WIDGET'; },
+          enumerable: true,
+        });
+        amazon_connect('contactAttributes', attrs);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

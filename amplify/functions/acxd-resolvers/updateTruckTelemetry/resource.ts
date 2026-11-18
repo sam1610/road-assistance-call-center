@@ -14,5 +14,6 @@ import { defineFunction } from '@aws-amplify/backend';
 export const updateTruckTelemetryFn = defineFunction({
   name: 'updateTruckTelemetry',
   entry: './handler.ts',
-  runtime: 20,
+  resourceGroupName: 'data',
+  runtime: 22,
 });

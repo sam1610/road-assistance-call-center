@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body #amazon-connect-chat-widget {
+  position: fixed !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  
+  /* Stretches to full device width, capped at 600px so it doesn't look absurd on ultra-wide desktop monitors */
+  width: 100vw !important; 
+  max-width: 600px !important; 
+  
+  /* Makes it tall enough to comfortably fit the form */
+  height: 85vh !important; 
+  max-height: 800px !important; 
+  
+  z-index: 999999 !important;
+}
+
+/* 2. FORCE THE INTERNAL IFRAME TO FILL THE EXPANDED CONTAINER */
+body #amazon-connect-chat-widget iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
