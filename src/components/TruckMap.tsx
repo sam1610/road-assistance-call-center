@@ -8,7 +8,9 @@ import ngeohash from 'ngeohash';
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 const AWS_REGION             = 'us-east-1';
-const MAP_NAME               = 'RoadAssistMap';
+// VITE_MAP_NAME is set in .env.production / Amplify environment variables
+// Falls back to 'RoadAssistMap-sandbox' for local dev
+const MAP_NAME = import.meta.env.VITE_MAP_NAME ?? 'RoadAssistMap-sandbox';
 const AWS_LOCATION_STYLE_URL = `https://maps.geo.${AWS_REGION}.amazonaws.com/maps/v0/maps/${MAP_NAME}/style-descriptor`;
 const OPEN_TILES_STYLE       = 'https://tiles.openfreemap.org/styles/liberty';
 const DEFAULT_CENTER: [number, number] = [50.586, 26.2285]; // Bahrain

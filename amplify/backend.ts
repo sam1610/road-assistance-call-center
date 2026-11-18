@@ -72,22 +72,28 @@ tableResource.addPropertyOverride('timeToLiveSpecification', {
 // to the RoadAssistRecord nested stack.
 const rootStack = backend.stack;
 
+// ── Environment-scoped resource naming ───────────────────────────────────────
+// AWS_BRANCH is set by Amplify CI/CD (e.g. "main", "staging").
+// In local sandbox it is undefined — we fall back to "sandbox".
+// This prevents resource name collisions between branches and sandbox.
+const envSuffix = process.env.AWS_BRANCH ?? 'sandbox';
+
 const placeIndex = new CfnPlaceIndex(rootStack, 'RoadAssistPlaceIndex', {
-  indexName: 'RoadAssistPlaceIndex',
+  indexName: `RoadAssistPlaceIndex-${envSuffix}`,
   dataSource: 'Esri',
 });
 
 const routeCalculator = new CfnRouteCalculator(rootStack, 'RoadAssistRouteCalculator', {
-  calculatorName: 'RoadAssistRouteCalculator',
+  calculatorName: `RoadAssistRouteCalculator-${envSuffix}`,
   dataSource: 'Esri',
 });
 
 const geofenceCollection = new CfnGeofenceCollection(rootStack, 'RoadAssistGeofenceCollection', {
-  collectionName: 'RoadAssistGeofences',
+  collectionName: `RoadAssistGeofences-${envSuffix}`,
 });
 
 const fleetTracker = new CfnTracker(rootStack, 'RoadAssistFleetTracker', {
-  trackerName: 'RoadAssistFleetTracker',
+  trackerName: `RoadAssistFleetTracker-${envSuffix}`,
   positionFiltering: 'AccuracyBased',
 });
 
@@ -95,8 +101,9 @@ new CfnTrackerConsumer(rootStack, 'RoadAssistTrackerConsumer', {
   trackerName: fleetTracker.trackerName,
   consumerArn: geofenceCollection.attrCollectionArn,
 });
+
 const roadAssistMap = new CfnMap(rootStack, 'RoadAssistMap', {
-  mapName: 'RoadAssistMap',
+  mapName: `RoadAssistMap-${envSuffix}`,
   description: 'Road Assistance basemap — Esri Street style',
   configuration: {
     style: 'VectorEsriStreets',
