@@ -184,7 +184,9 @@ export const handler: AppSyncResolverHandler<
       Key: { PK: `INC#${incidentId}`, SK: 'METADATA' },
       UpdateExpression: `SET #data = :updatedData,
         GSI3PK = :gsi3pk, GSI3SK = :gsi3sk,
-        GSI4PK = :gsi4pk, GSI4SK = :gsi4sk`,
+        GSI4PK = :gsi4pk, GSI4SK = :gsi4sk,
+        createdAt = if_not_exists(createdAt, :ts),
+        updatedAt = :ts`,
       ExpressionAttributeNames: { '#data': 'data' },
       ExpressionAttributeValues: {
         ':updatedData': JSON.stringify(mergedData),
@@ -192,6 +194,7 @@ export const handler: AppSyncResolverHandler<
         ':gsi3sk': `CANDIDATE#${invertedTs}#${incidentId}`,
         ':gsi4pk': 'OPS_STATUS#TRIAGE',
         ':gsi4sk': `SEV#NORMAL#${nowTs}`,
+        ':ts':     nowTs,
       },
     })
   );

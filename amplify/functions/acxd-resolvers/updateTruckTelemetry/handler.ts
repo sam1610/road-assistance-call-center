@@ -60,7 +60,9 @@ export const handler: AppSyncResolverHandler<
       TableName: TABLE_NAME,
       Key: { PK: `TRUCK#${truckId}`, SK: 'STATUS' },
       UpdateExpression: `SET #status = :status, GSI2PK = :gsi2pk, GSI2SK = :gsi2sk,
-        #data = :data, recordCreatedAt = :ts`,
+        #data = :data, recordCreatedAt = :ts,
+        createdAt = if_not_exists(createdAt, :ts),
+        updatedAt = :ts`,
       ExpressionAttributeNames: { '#status': 'status', '#data': 'data' },
       ExpressionAttributeValues: {
         ':status':  operationalStatus,
