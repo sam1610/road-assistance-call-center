@@ -698,9 +698,17 @@ export default function App() {
           { authMode: 'apiKey', sortDirection: 'DESC', limit: 100 }
         );
 
+      // Amplify Gen2 client may return items in res.data or res.data.items
+      const rawItems = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.items)
+        ? res.data.items
+        : [];
+      addLog(`Driver missions raw: ${rawItems.length} items for ${truckId}`);
+
       // Filter to only INCIDENT_METADATA records — exclude TRUCK_DISPATCH_LOG,
       // TRUCK_PROFILE, TRUCK_STATUS, etc. that share the same GSI3PK.
-      const incidentItems = (res.data ?? []).filter((item: any) =>
+      const incidentItems = rawItems.filter((item: any) =>
         item.entityType === 'INCIDENT_METADATA' ||
         (item.SK === 'METADATA' && item.PK?.startsWith('INC#'))
       );
@@ -735,9 +743,9 @@ export default function App() {
       items.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setDriverMissions(items);
     } catch (err: any) {
-      console.warn('[fetchDriverMissions] GSI3 query failed:', err);
-      // Fallback to in-memory filter if query fails
-      setDriverMissions(driverFilteredIncidents);
+      console.error('[fetchDriverMissions] GSI3 query failed:', JSON.stringify(err));
+      addLog(`Driver missions error: ${err?.message || JSON.stringify(err)}`);
+      setDriverMissions([]);
     } finally {
       setDriverMissionsLoading(false);
     }
