@@ -706,11 +706,13 @@ export default function App() {
         : [];
       addLog(`Driver missions raw: ${rawItems.length} items for ${truckId}`);
 
-      // Filter to only INCIDENT_METADATA records — exclude TRUCK_DISPATCH_LOG,
-      // TRUCK_PROFILE, TRUCK_STATUS, etc. that share the same GSI3PK.
+      // Filter out null items (Amplify returns null for records missing createdAt/updatedAt)
+      // then keep only INCIDENT_METADATA records.
       const incidentItems = rawItems.filter((item: any) =>
-        item.entityType === 'INCIDENT_METADATA' ||
-        (item.SK === 'METADATA' && item.PK?.startsWith('INC#'))
+        item != null && (
+          item.entityType === 'INCIDENT_METADATA' ||
+          (item.SK === 'METADATA' && item.PK?.startsWith('INC#'))
+        )
       );
 
       const items: EnrichedIncidentRow[] = incidentItems.map((item: any) => {
