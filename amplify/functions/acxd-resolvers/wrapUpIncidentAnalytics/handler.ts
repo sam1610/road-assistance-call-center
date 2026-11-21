@@ -74,14 +74,25 @@ export const handler: AppSyncResolverHandler<
     guardrailIdAndVersion: args.guardrailIdAndVersion,
   };
 
-  const nowIso = new Date().toISOString();
+const nowIso = new Date().toISOString();
   const ttlNinetyDays = Math.floor(Date.now() / 1000) + 90 * 86400;
+
+  // 1. Coerce numeric fields (Connect/Agentic CX often sends them as strings like "0.8")
+  const safeSentimentScore =
+    wrapUpInput.sentimentScore !== undefined && wrapUpInput.sentimentScore !== null
+      ? Number(wrapUpInput.sentimentScore)
+      : undefined;
+
+  const safeEffortScore =
+    wrapUpInput.customerEffortScore !== undefined && wrapUpInput.customerEffortScore !== null
+      ? Number(wrapUpInput.customerEffortScore)
+      : undefined;
 
   const updatedFields = Object.entries(wrapUpInput)
     .filter(([_, v]) => v !== undefined && v !== null)
     .map(([k]) => k);
 
-  // Write CALL_INTERACTION_LOG item under the Incident Partition Key
+  // 2. Write CALL_INTERACTION_LOG item under the Incident Partition Key
   await ddb.send(
     new PutCommand({
       TableName: TABLE_NAME,
@@ -93,8 +104,8 @@ export const handler: AppSyncResolverHandler<
         llmChatSummary: wrapUpInput.llmChatSummary ?? undefined,
         contactLensGenAiSummary: wrapUpInput.contactLensGenAiSummary ?? undefined,
         sentimentLabel: wrapUpInput.sentimentLabel ?? undefined,
-        sentimentScore: wrapUpInput.sentimentScore ?? undefined,
-        customerEffortScore: wrapUpInput.customerEffortScore ?? undefined,
+        sentimentScore: Number.isFinite(safeSentimentScore) ? safeSentimentScore : undefined,
+        customerEffortScore: Number.isFinite(safeEffortScore) ? safeEffortScore : undefined,
         transcriptS3Uri: wrapUpInput.transcriptS3Uri ?? undefined,
         recordingS3Uri: wrapUpInput.recordingS3Uri ?? undefined,
         guardrailIntervened: wrapUpInput.guardrailIntervened ?? false,
@@ -104,18 +115,19 @@ export const handler: AppSyncResolverHandler<
     })
   );
 
-  // Roll up the latest summary & sentiment onto the master INC#<incidentId> / METADATA record
+  // 3. Roll up summary & sentiment onto the master METADATA record (preserving entityType)
   await ddb.send(
     new UpdateCommand({
       TableName: TABLE_NAME,
       Key: { PK: `INC#${incidentId}`, SK: 'METADATA' },
       UpdateExpression:
-        'SET llmChatSummary = :sum, sentimentLabel = :sent, sentimentScore = :score, guardrailIntervened = :gr, #status = :statusVal',
+        'SET entityType = if_not_exists(entityType, :et), llmChatSummary = :sum, sentimentLabel = :sent, sentimentScore = :score, guardrailIntervened = :gr, #status = :statusVal',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
+        ':et': 'INCIDENT_METADATA',
         ':sum': wrapUpInput.contactLensGenAiSummary || wrapUpInput.llmChatSummary || 'Completed',
         ':sent': wrapUpInput.sentimentLabel || 'NEUTRAL',
-        ':score': wrapUpInput.sentimentScore ?? 0.5,
+        ':score': Number.isFinite(safeSentimentScore) ? safeSentimentScore : 0.5,
         ':gr': wrapUpInput.guardrailIntervened ?? false,
         ':statusVal': 'RESOLVED',
       },

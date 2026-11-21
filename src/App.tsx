@@ -698,6 +698,10 @@ export default function App() {
           { authMode: 'apiKey', sortDirection: 'DESC', limit: 100 }
         );
 
+      if (res.errors?.length) {
+        addLog(`GSI3 GraphQL errors: ${res.errors.map((e: any) => e.message).join(' | ')}`);
+      }
+
       // Amplify Gen2 client may return items in res.data or res.data.items
       const rawItems = Array.isArray(res.data)
         ? res.data
