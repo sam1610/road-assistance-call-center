@@ -733,8 +733,8 @@ export default function App() {
           PK: item.PK,
           SK: item.SK,
           incidentId: incId,
-          customerIdentifier: parsedData.customerId || parsedData.customerPhone || '',
-          carPlate: parsedData.incidentPlate || parsedData.plateNumber || '',
+          customerIdentifier: parsedData.customerId || parsedData.customerPhone || (item.agentCoreActorIdCustomer || '').replace('CUST#', '') || '',
+          carPlate: parsedData.incidentPlate || parsedData.plateNumber || (item.agentCoreActorIdVehicle || '').replace('VEH#', '') || '',
           incidentType: parsedData.incidentType || item.incidentType || 'UNKNOWN',
           locationGeohash: parsedData.locationGeohash || '',
           assignedTruckId: parsedData.assignedTruckId || parsedData.candidateTruckId || truckId,
@@ -1093,14 +1093,14 @@ export default function App() {
                 </div>
 
                 {/* Mission list */}
-                <div style={{ flex: '1 1 360px', backgroundColor: '#1e293b', borderRadius: '10px', border: '1px solid #334155', padding: '14px', minWidth: 0 }}>
+                <div style={{ flex: '1 1 360px', backgroundColor: '#1e293b', borderRadius: '10px', border: '1px solid #334155', padding: '14px', minWidth: 0, maxHeight: '560px', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#4ade80', marginBottom: '10px' }}>
                     📋 Dispatched Missions <span style={{ color: '#64748b', fontWeight: 400, fontSize: '12px' }}>({driverMyMissions.length})</span>
                   </div>
                   {driverMyMissions.length === 0 && (
                     <p style={{ color: '#475569', fontSize: '13px' }}>No missions assigned to {selectedDriverTruck}.</p>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '480px', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '460px', overflowY: 'auto', paddingRight: '4px' }}>
                     {driverMyMissions.map((row) => {
                       const isSelected = (selectedMissionId ?? driverMyMissions[0]?.incidentId) === row.incidentId;
                       const meta = driverStatusMeta[row.incidentStatus] ?? { color: '#94a3b8', bg: '#0f172a' };
