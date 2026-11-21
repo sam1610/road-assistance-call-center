@@ -148,7 +148,9 @@ export const handler: AppSyncResolverHandler<
               sentimentLabel = :sentLabel,
               sentimentScore = :sentScore,
               #data = :incData,
-              #status = :statusVal`,
+              #status = :statusVal,
+              createdAt = if_not_exists(createdAt, :now),
+              updatedAt = :now`,
             ExpressionAttributeNames: { '#data': 'data', '#status': 'status' },
             ExpressionAttributeValues: {
               ':opsDispatched': 'OPS_STATUS#DISPATCHED',
@@ -161,6 +163,7 @@ export const handler: AppSyncResolverHandler<
               ':sentLabel':  sentimentLabel,
               ':sentScore':  sentimentScore,
               ':statusVal': 'DISPATCHED',           // top-level for EntityStatusIndex
+              ':now':        nowIso,
               ':incData': JSON.stringify({
                 ...incData,
                 incidentStatus:    'DISPATCHED',
@@ -180,13 +183,16 @@ export const handler: AppSyncResolverHandler<
             TableName: TABLE_NAME,
             Key: { PK: `TRUCK#${truckId}`, SK: 'STATUS' },
             UpdateExpression: `SET GSI3PK = :gsi3pk, GSI3SK = :gsi3sk, GSI2PK = :gsi2pk,
-              #st = :dispatched, #data = :truckData`,
+              #st = :dispatched, #data = :truckData,
+              createdAt = if_not_exists(createdAt, :now),
+              updatedAt = :now`,
             ExpressionAttributeNames: { '#st': 'status', '#data': 'data' },
             ExpressionAttributeValues: {
               ':gsi3pk':    `TRUCK#${truckId}`,
               ':gsi3sk':    `ACTIVE#${invertedTs}#${incidentId}`,
               ':gsi2pk':    `FLEET#DISPATCHED#${geohash.slice(0, 4)}`,
               ':dispatched': 'DISPATCHED',
+              ':now':        nowIso,
               // Preserve all existing truck GPS fields (currentLat, currentLong,
               // locationGeohash) — only change operationalStatus and add dispatch info.
               // This prevents the truck marker from jumping to the customer's location.
@@ -209,6 +215,8 @@ export const handler: AppSyncResolverHandler<
               PK:           `TRUCK#${truckId}`,
               SK:           `DISPATCH#${invertedTs}#${incidentId}`,
               entityType:   'TRUCK_DISPATCH_LOG',
+              createdAt:    nowIso,
+              updatedAt:    nowIso,
               GSI3PK:       `TRUCK#${truckId}`,
               GSI3SK:       `ACTIVE#${invertedTs}#${incidentId}`,
               expiresAt:    ttlThirtyDays,

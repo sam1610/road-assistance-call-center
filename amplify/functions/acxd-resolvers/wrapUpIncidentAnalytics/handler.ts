@@ -100,6 +100,8 @@ const nowIso = new Date().toISOString();
         PK: `INC#${incidentId}`,
         SK: `COMM#${nowIso}`,
         entityType: 'CALL_INTERACTION_LOG',
+        createdAt: nowIso,
+        updatedAt: nowIso,
         expiresAt: ttlNinetyDays,
         llmChatSummary: wrapUpInput.llmChatSummary ?? undefined,
         contactLensGenAiSummary: wrapUpInput.contactLensGenAiSummary ?? undefined,
@@ -121,10 +123,11 @@ const nowIso = new Date().toISOString();
       TableName: TABLE_NAME,
       Key: { PK: `INC#${incidentId}`, SK: 'METADATA' },
       UpdateExpression:
-        'SET entityType = if_not_exists(entityType, :et), llmChatSummary = :sum, sentimentLabel = :sent, sentimentScore = :score, guardrailIntervened = :gr, #status = :statusVal',
+        'SET entityType = if_not_exists(entityType, :et), llmChatSummary = :sum, sentimentLabel = :sent, sentimentScore = :score, guardrailIntervened = :gr, #status = :statusVal, createdAt = if_not_exists(createdAt, :now), updatedAt = :now',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
-        ':et': 'INCIDENT_METADATA',
+        ':et':  'INCIDENT_METADATA',
+        ':now': nowIso,
         ':sum': wrapUpInput.contactLensGenAiSummary || wrapUpInput.llmChatSummary || 'Completed',
         ':sent': wrapUpInput.sentimentLabel || 'NEUTRAL',
         ':score': Number.isFinite(safeSentimentScore) ? safeSentimentScore : 0.5,

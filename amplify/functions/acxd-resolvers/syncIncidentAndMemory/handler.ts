@@ -159,6 +159,8 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
           entityType: 'CUSTOMER_PROFILE',
           status: 'GUEST',
           recordCreatedAt: nowIso,
+          createdAt: nowIso,
+          updatedAt: nowIso,
           agentCoreActorIdCustomer: `CUST#${customerIdentifier}`,
           data: JSON.stringify({
             customerPhone: customerIdentifier,
@@ -204,6 +206,8 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
           entityType: 'INCIDENT_METADATA',
           status:              'INTAKE',
           recordCreatedAt:     nowIso,
+          createdAt:           nowIso,
+          updatedAt:           nowIso,
           incidentType:        safeIncidentType,      
           incidentDescription: safeDescription,       
           customerPhone,
