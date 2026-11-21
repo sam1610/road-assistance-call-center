@@ -102,6 +102,7 @@ export default function App() {
   const [selectedDriverTruck, setSelectedDriverTruck] = useState('TRUCK-BHR-01');
   const [selectedMissionId, setSelectedMissionId]       = useState<string | null>(null);
   const [driverTruckStatus, setDriverTruckStatus]       = useState<Record<string,string>>({});
+  const [selectedTruckForDispatch, setSelectedTruckForDispatch] = useState<string>('TRUCK-BHR-01');
   const [driverMissions, setDriverMissions]             = useState<EnrichedIncidentRow[]>([]);
   const [driverMissionsLoading, setDriverMissionsLoading] = useState(false);
   const [allIncidents, setAllIncidents] = useState<EnrichedIncidentRow[]>([]);
@@ -265,7 +266,10 @@ export default function App() {
         const updatedActive = parsed.find(
           (i) => i.incidentId === activeIncident.incidentId
         );
-        if (updatedActive) setActiveIncident(updatedActive);
+        // Only update active incident if data actually changed (prevents flicker)
+        if (updatedActive && updatedActive.incidentStatus !== activeIncident.incidentStatus) {
+          setActiveIncident(updatedActive);
+        }
       } else if (parsed.length > 0) {
         setActiveIncident(parsed[0]);
       }
@@ -750,8 +754,14 @@ export default function App() {
         };
       });
 
-      // Sort newest first
-      items.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      // Sort: active missions (DISPATCHED/ON_PROGRESS) first, then by date newest first
+      const statusPriority: Record<string,number> = { 'DISPATCHED':2, 'ON_PROGRESS':2, 'INTAKE':1, 'COMPLETED':0, 'RESOLVED':0, 'DONE':0 };
+      items.sort((a, b) => {
+        const pa = statusPriority[a.incidentStatus] ?? 1;
+        const pb = statusPriority[b.incidentStatus] ?? 1;
+        if (pb !== pa) return pb - pa;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
       setDriverMissions(items);
     } catch (err: any) {
       console.error('[fetchDriverMissions] GSI3 query failed:', JSON.stringify(err));
@@ -1179,31 +1189,31 @@ export default function App() {
                   {/* Info grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px', marginBottom: '14px' }}>
                     <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', fontWeight: 600 }}>Customer</div>
-                      <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{activeIncident.customerIdentifier}</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px', fontWeight: 700 }}>Customer</div>
+                      <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '14px' }}>{activeIncident.customerIdentifier}</div>
                       <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '3px' }}>Channel: {activeIncident.channelType}</div>
                     </div>
                     <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', fontWeight: 600 }}>Vehicle</div>
-                      <div style={{ color: '#38bdf8', fontWeight: 700 }}>{activeIncident.carPlate}</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px', fontWeight: 700 }}>Vehicle</div>
+                      <div style={{ color: '#38bdf8', fontWeight: 700, fontSize: '15px' }}>{activeIncident.carPlate}</div>
                       <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '3px' }}>{activeIncident.incidentType.replace(/_/g, ' ')}</div>
                     </div>
                     <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', fontWeight: 600 }}>Location</div>
-                      <div style={{ color: '#4ade80', fontWeight: 700, fontFamily: 'monospace' }}>{activeIncident.locationGeohash}</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px', fontWeight: 700 }}>Location</div>
+                      <div style={{ color: '#4ade80', fontWeight: 700, fontFamily: 'monospace', fontSize: '14px' }}>{activeIncident.locationGeohash}</div>
                       <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '3px' }}>Geofence: {activeIncident.geofenceStatus}</div>
                     </div>
                     <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', fontWeight: 600 }}>Dispatch</div>
-                      <div style={{ color: '#4ade80', fontWeight: 700 }}>{activeIncident.assignedTruckId}</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px', fontWeight: 700 }}>Dispatch</div>
+                      <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: '14px' }}>{activeIncident.assignedTruckId === 'UNASSIGNED' ? '⏳ UNASSIGNED' : activeIncident.assignedTruckId}</div>
                       <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '3px' }}>ETA: {activeIncident.estimatedArrivalMinutes} min</div>
                     </div>
                     <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', fontWeight: 600 }}>Sentiment</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px', fontWeight: 700 }}>Sentiment</div>
                       <div style={{ marginBottom: '3px' }}>{renderSentimentBadge(activeIncident.sentimentLabel, activeIncident.sentimentScore)}</div>
                     </div>
                     <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '6px', fontWeight: 600 }}>Updated</div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px', fontWeight: 700 }}>Updated</div>
                       <div style={{ color: '#e2e8f0', fontSize: '12px' }}>{new Date(activeIncident.updatedAt).toLocaleTimeString()}</div>
                       <div style={{ color: '#475569', fontSize: '11px' }}>{new Date(activeIncident.updatedAt).toLocaleDateString()}</div>
                     </div>
@@ -1214,18 +1224,27 @@ export default function App() {
                     <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px', fontWeight: 600 }}>
                       🤖 SAM1610 AI Chat Résumé
                     </div>
-                    <div style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: 1.6 }}>{activeIncident.llmChatSummary}</div>
+                    <div style={{ color: '#f1f5f9', fontSize: '13px', lineHeight: 1.7, fontStyle: activeIncident.llmChatSummary ? 'normal' : 'italic' }}>{activeIncident.llmChatSummary || 'AI résumé pending...'}</div>
                   </div>
 
                   {/* Quick action buttons */}
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <button onClick={() => handleUpdateIncidentStatusOrTruck(activeIncident, 'DISPATCHED_BY_HUMAN', 'TRUCK-BHR-01')} disabled={loading}
-                      style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                      🚛 Dispatch TRUCK-BHR-01
-                    </button>
-                    <button onClick={() => handleUpdateIncidentStatusOrTruck(activeIncident, 'DISPATCHED_BY_HUMAN', 'TRUCK-BHR-02')} disabled={loading}
-                      style={{ backgroundColor: '#7c3aed', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                      🚛 Dispatch TRUCK-BHR-02
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {/* Truck selector dropdown */}
+                    <select
+                      value={selectedTruckForDispatch}
+                      onChange={(e) => setSelectedTruckForDispatch(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: '6px', backgroundColor: '#0f172a', color: '#e2e8f0', border: '1px solid #3b82f6', fontSize: '13px', fontWeight: 600 }}
+                    >
+                      <option value="TRUCK-BHR-01">🚛 TRUCK-BHR-01 — Mahmoud (Flatbed)</option>
+                      <option value="TRUCK-BHR-02">🚛 TRUCK-BHR-02 — Ali (Heavy Tow)</option>
+                      <option value="TRUCK-BHR-03">🚛 TRUCK-BHR-03 — Mahmoud Jassim (Heavy Flatbed)</option>
+                    </select>
+                    <button
+                      onClick={() => handleUpdateIncidentStatusOrTruck(activeIncident, 'DISPATCHED_BY_HUMAN', selectedTruckForDispatch)}
+                      disabled={loading}
+                      style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}
+                    >
+                      🚛 Dispatch Truck
                     </button>
                     <button onClick={() => handleUpdateIncidentStatusOrTruck(activeIncident, 'ARRIVED_1_5KM')} disabled={loading}
                       style={{ backgroundColor: '#059669', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
