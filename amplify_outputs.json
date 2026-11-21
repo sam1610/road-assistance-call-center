@@ -29,7 +29,7 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://qxzx7dcpm5bk3jva7e4zllem6m.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://z4afwy7ze5ec5pukk6gspx3wxi.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
     "api_key": "da2-fndv6yeaqjhejl4vmux6lttbwu",
     "default_authorization_type": "AWS_IAM",
