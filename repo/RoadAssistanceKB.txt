@@ -1,0 +1,81 @@
+Road Assistance Call Center - Master Knowledge Base
+
+1. Agent Persona & Core Guidelines
+Tone: Empathetic, calm, professional, and reassuring. Customers are usually stressed or in danger.
+Safety First: Always ask if the customer or anyone else is injured. If yes, advise them to call emergency services (911/999/112) immediately before proceeding.
+Data Collection: Before dispatching assistance, the agent must collect: Customer Name, Policy/Membership Number, Vehicle Make/Model/Color/Plate Number, Current Exact Location (Address, GPS coordinates, or landmarks), and a Callback Number.
+Boundaries: Do not promise an exact arrival time; always provide an estimated ETA range. Do not authorize repairs or payments outside of the policy limits.
+
+2. Emergency & Accident Protocols
+
+Q: What should I do if I am in an accident?
+A: First, please ensure your safety and the safety of your passengers. Move to a safe location away from traffic if possible. If there are injuries or severe damage, please call emergency services (police/ambulance) immediately. Once safe, I can dispatch a tow truck to your location. 
+
+Q: My car is in a dangerous spot on the highway. 
+A: Please turn on your hazard lights immediately. If safe, exit the vehicle and stand behind the safety barrier, away from traffic. I am prioritizing your call and dispatching a recovery vehicle right away. Can you confirm your exact highway marker or direction of travel?
+
+Q: My car is smoking / on fire.
+A: Do not open the hood. Move at least 100 feet away from the vehicle immediately. Call the fire department (911/999/112) right away. Once you are safe and the fire is handled, contact us again if you need a tow.
+
+3. Mechanical & Electrical Breakdowns
+
+Q: My car won't start (Dead Battery).
+A: I can dispatch a technician to provide a jump-start. If the battery is completely dead and cannot hold a charge, we may need to tow your vehicle to a service center. Would you like me to send a jump-start unit?
+
+Q: I have a flat tire.
+A: If you have a spare tire and the necessary tools, our technician can assist with a tire change. If you do not have a spare, we will need to tow your vehicle to the nearest tire shop. Please confirm if you have a spare tire available.
+
+Q: My engine is overheating.
+A: Please turn off the air conditioning and turn the heater on full blast (this helps pull heat away from the engine). Pull over safely and turn off the engine. Do not open the radiator cap while the engine is hot. I will dispatch a tow truck to take your vehicle to a garage.
+
+Q: The car is making a strange noise or is unsafe to drive.
+A: For your safety, please pull over to a safe location immediately and turn off the engine. Continuing to drive could cause further damage. I can arrange a tow to the nearest certified mechanic.
+
+4. Lockouts & Keys
+
+Q: I locked my keys inside the car.
+A: I can dispatch a professional locksmith to unlock your vehicle. Please note: to protect your security, the locksmith will require proof of ownership (ID and vehicle registration) before opening the car. 
+
+Q: I lost my keys.
+A: Locked out with lost keys can usually be handled by a locksmith for entry, but if the vehicle cannot be started, we will need to tow it to a dealership or a specialized key-cutting service.
+
+5. Fuel & EV Assistance
+
+Q: I ran out of gas.
+A: I can dispatch a roadside unit to deliver a small amount of emergency fuel (usually enough to reach the nearest gas station). Please note the type of fuel your vehicle requires (Petrol/Diesel/Octane rating).
+
+Q: My Electric Vehicle (EV) battery is dead.
+A: We can dispatch a mobile charging unit for a quick top-up if your location is accessible, or we can tow your EV to the nearest charging station. Which would you prefer?
+
+6. Towing & Service Status
+
+Q: Where is the tow truck? / How long will it take?
+A: I see your request. The estimated time of arrival (ETA) is currently [Insert ETA range, e.g., 30-45 minutes]. Traffic conditions may affect this. I will send a tracking link to your phone so you can see the driver's location in real-time.
+
+Q: Can I choose which garage the car is towed to?
+A: Yes, if your policy allows. However, towing is usually limited to a specific mileage radius (e.g., 20 miles). If you have a preferred garage, please let me know the name and address so I can check if it is within your coverage limit.
+
+Q: The tow truck driver is asking for money.
+A: Your membership covers the base towing service. If the driver is asking for payment, it may be for additional mileage beyond your coverage limit, or for tolls/parking fees. Please ask the driver for a receipt. If you believe this is an error, please call us back immediately.
+
+7. Coverage, Policy & Billing
+
+Q: Is my towing covered by my policy?
+A: Coverage depends on your specific plan. Standard plans usually cover towing up to a certain distance (e.g., 10-20 miles) to the nearest repair facility. For long-distance towing to a specific garage, there may be out-of-pocket costs.
+
+Q: Do I have to pay anything today?
+A: If the service requested is fully covered under your plan, there is no charge. If there are extra fees (e.g., excessive towing mileage, specialized recovery, or fuel delivery), the driver will collect payment on the spot, or we can process it over the phone.
+
+Q: What is my membership/policy number?
+A: I can look that up for you. Could you please provide your registered phone number or your vehicle's license plate number so I can pull up your account?
+
+8. Out-of-Scope / General Inquiries
+
+Q: My car broke down, but I am not the registered policy holder.
+A: Road assistance benefits usually cover the vehicle, not just the driver. As long as the vehicle is covered under the policy, we can assist you. We may need to verify the policy holder's details.
+
+Q: I need a rental car while mine is in the shop.
+A: Rental car reimbursement is only available if you have that specific coverage added to your policy. I can check your policy details. If covered, I will transfer you to our rental partner to book a vehicle.
+
+Q: I need medical help.
+A: If this is a medical emergency, please hang up and dial emergency services (911/999/112) immediately. If you are safe but need medical advice, I can transfer you to our medical assistance line.
