@@ -650,6 +650,7 @@ export default function App() {
       addLog(
         `Updated Incident ${row.incidentId} -> Truck: ${targetTruck}, Status: ${newStatus}`
       );
+      setMapRefreshKey(k => k + 1); // repaint truck colour immediately
       await fetchIncidents();
     } catch (err: any) {
       addLog(`Update error: ${err.message}`);
@@ -763,6 +764,10 @@ export default function App() {
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       });
       setDriverMissions(items);
+      // Trigger map repaint if any mission is dispatched
+      if (items.some(i => i.incidentStatus === 'DISPATCHED' || i.incidentStatus === 'EN_ROUTE')) {
+        setMapRefreshKey(k => k + 1);
+      }
     } catch (err: any) {
       console.error('[fetchDriverMissions] GSI3 query failed:', JSON.stringify(err));
       addLog(`Driver missions error: ${err?.message || JSON.stringify(err)}`);
@@ -822,6 +827,7 @@ export default function App() {
         );
         setDriverTruckStatus(prev => ({ ...prev, [selectedDriverTruck]: 'AVAILABLE' }));
         addLog(`🟢 ${selectedDriverTruck} → AVAILABLE (job completed for incident ${row.incidentId})`);
+        setMapRefreshKey(k => k + 1); // repaint truck green on map
 
         // 2. Update incident record — mark RESOLVED with driver details for history
         const nowIso = new Date().toISOString();
