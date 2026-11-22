@@ -339,7 +339,7 @@ export default function TruckMap({ className, customerLat, customerLng, onLocate
           )
           .addTo(map);
         // Fly to the customer on first fix only
-        map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), 13), duration: 900 });
+        map.flyTo({ center: lngLat, zoom: Math.min(Math.max(map.getZoom(), 11), 11), duration: 900 });
       }
 
       onLocate?.(lat, lng);
