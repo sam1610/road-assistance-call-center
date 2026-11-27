@@ -1,0 +1,446 @@
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
+import { syncIncidentAndMemoryFn } from '../functions/acxd-resolvers/syncIncidentAndMemory/resource';
+import { geocodeLocation } from '../functions/geocodeLocation/resource';
+import { locateAndFindNearestTruckFn } from '../functions/acxd-resolvers/locateAndFindNearestTruck/resource';
+import { confirmDispatchAndGeofenceFn } from '../functions/acxd-resolvers/confirmDispatchAndGeofence/resource';
+import { wrapUpIncidentAnalyticsFn } from '../functions/acxd-resolvers/wrapUpIncidentAnalytics/resource';
+import { updateTruckTelemetryFn } from '../functions/acxd-resolvers/updateTruckTelemetry/resource';
+import { publishIncidentLiveUpdateFn } from '../functions/acxd-resolvers/publishIncidentLiveUpdate/resource';
+import { startConnectSessionFn } from '../functions/acxd-resolvers/startConnectSession/resource';
+
+/**
+ * Single-Table DynamoDB schema for the Road Assistance Agentic Call Center.
+ *
+ * `RoadAssistRecord` is the single Amplify model that represents every entity
+ * stored in `RoadAssistEnterpriseTable`.  All domain entities share this one
+ * model and are discriminated by the `entityType` attribute plus their PK/SK
+ * key patterns.
+ *
+ * Composite primary key: PK (partition key) + SK (sort key), configured via
+ * `.identifier(['PK', 'SK'])` per the Amplify Gen 2 data-modelling API.
+ *
+ * Requirements: 3.1, 3.9, 3.10, 4.1–4.5, 5.1, 5.2, 5.3, 6.1
+ */
+const schema = a.schema({
+  // ─── Custom Types (Requirements: 6.1) ─────────────────────────────────────
+
+  /**
+   * Context bundle returned to ACXD at call-start (Tool 1 response).
+   * Carries incident identifiers and all AgentCore correlation handles
+   * needed for the remainder of the call.
+   */
+  IncidentMemoryContext: a.customType({
+    incidentId: a.string(),
+    customerId: a.string(),
+    customerPhone: a.string(),
+    customerName: a.string(),     // resolved from profile driverName / customerName; 'Guest' if unknown
+    membershipTier: a.string(),
+    defaultPlate: a.string(),
+    locationGeohash: a.string(),
+    agentCoreMemoryId: a.string(),
+    agentCoreActorIdCustomer: a.string(),
+    agentCoreActorIdVehicle: a.string(),
+    agentCoreSessionId: a.string(),
+  }),
+
+  /**
+   * Nearest available tow truck identified by the GSI2 fleet query.
+   */
+  NearestTruckResult: a.customType({
+    truckId: a.string(),
+    estimatedArrivalMinutes: a.integer(),
+    truckType: a.string(),
+    driverName: a.string(),
+    driverPhone: a.string(),
+  }),
+
+  /**
+   * Confirmation payload returned after a truck dispatch and geofence creation.
+   */
+  DispatchConfirmation: a.customType({
+    truckId: a.string(),
+    incidentId: a.string(),
+    geofenceStatus: a.string(),
+    dispatchTimestamp: a.string(),
+  }),
+
+  /**
+   * Post-call analytics wrap-up result written by the wrapUpIncidentAnalytics Lambda.
+   */
+  AnalyticsWrapUpResult: a.customType({
+    incidentId: a.string(),
+    success: a.boolean(),
+    updatedFields: a.string().array(),
+  }),
+
+  /**
+   * Real-time incident update pushed to the dispatcher dashboard via subscription.
+   */
+  IncidentLiveUpdate: a.customType({
+    incidentId: a.string(),
+    incidentStatus: a.string(),
+    truckLocationGeohash: a.string(),
+    etaMinutes: a.integer(),
+  }),
+
+  /**
+   * Input shape for the wrapUpIncidentAnalytics mutation.
+   * Carries all Contact Lens, guardrail, and scoring data from the call.
+   */
+  WrapUpInput: a.customType({
+    llmChatSummary: a.string(),
+    contactLensGenAiSummary: a.string(),
+    sentimentLabel: a.string(),
+    sentimentScore: a.float(),
+    customerEffortScore: a.float(),
+    transcriptS3Uri: a.string(),
+    recordingS3Uri: a.string(),
+    guardrailIntervened: a.boolean(),
+    guardrailActionReason: a.string(),
+    guardrailIdAndVersion: a.string(),
+  }),
+
+  /**
+   * Result returned to the frontend after initiating a WebRTC or Chat contact
+   * through Amazon Connect.  `connectionDataJson` contains the serialised
+   * ConnectionData object needed by the Amazon Connect Streams SDK.
+   */
+  ConnectSessionResult: a.customType({
+    contactId: a.string(),
+    connectionDataJson: a.string(),
+  }),
+
+  // ─── Custom Queries and Mutations (Requirements: 6.2, 6.4–6.8, 2.3, 2.4) ──
+
+  /**
+   * Tool 1: Called by ACXD at call-start to retrieve (or create) the customer
+   * profile, the INCIDENT_METADATA record, and the AgentCore memory session
+   * context.  Returns an IncidentMemoryContext bundle for the call lifecycle.
+   *
+   * Requirements: 6.2, 2.3
+   */
+  geocodeLocation: a
+  .query()
+  .arguments({
+    address: a.string().required(),
+  })
+  .returns(
+    a.customType({
+      geohash: a.string().required(),
+      latitude: a.float().required(),
+      longitude: a.float().required(),
+      address: a.string().required(),
+    })
+  )
+  .authorization((allow) => [allow.publicApiKey()])
+  .handler(a.handler.function(geocodeLocation)),
+
+  syncIncidentAndMemory: a
+    .query()
+    .arguments({
+      contactId: a.string().required(),
+      customerIdentifier: a.string().required(),
+      customerPhone: a.string(),    
+      voicePhoneNumber:a.string(),   
+      languagePreference: a.string(), 
+      plateNumber: a.string(),
+      incidentType: a.string(),
+      incidentDescription: a.string(),
+      locationGeohash: a.string(),
+    })
+    .returns(a.ref('IncidentMemoryContext'))
+    .authorization((allow:  any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(syncIncidentAndMemoryFn)),
+
+  /**
+   * Tool 2: Called by ACXD to locate the nearest available tow truck.
+   * Accepts an incidentId and a 6-character geohash representing the
+   * caller's location, queries GSI2 (FleetAvailabilityIndex) for
+   * AVAILABLE trucks in the matching region/zone, and returns the
+   * nearest match.
+   *
+   * Requirements: 6.4, 2.3
+   */
+  locateAndFindNearestTruck: a
+    .query()
+    .arguments({
+      incidentId: a.string().required(),
+      locationGeohash: a.string().required(),
+    })
+    .returns(a.ref('NearestTruckResult'))
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(locateAndFindNearestTruckFn)),
+
+  // ─── Custom Mutations (Requirements: 6.5, 6.6, 6.8, 2.3, 2.4) ──────────
+
+  /**
+   * Tool 3: Called by ACXD to dispatch a tow truck.
+   * Accepts an incidentId and truckId, writes a TRUCK_DISPATCH_LOG record,
+   * creates an Amazon Location Geofence for the incident location, and
+   * returns a DispatchConfirmation.  If geofence creation fails the record
+   * is still written and geofenceStatus is set to "FAILED".
+   *
+   * Requirements: 6.5, 2.3
+   */
+  confirmDispatchAndGeofence: a
+    .mutation()
+    .arguments({
+      incidentId: a.string().required(),
+      truckId: a.string().required(),
+    })
+    .returns(a.ref('DispatchConfirmation'))
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(confirmDispatchAndGeofenceFn)),
+
+  /**
+   * Tool 4: Called by ACXD (or triggered by a Contact Lens EventBridge rule)
+   * after call completion.  Accepts an incidentId and a WrapUpInput payload
+   * containing Contact Lens analytics, updates the CALL_INTERACTION_LOG
+   * record with post-call data, and returns an AnalyticsWrapUpResult.
+   *
+   * Requirements: 6.6, 6.7, 2.3
+   */
+  wrapUpIncidentAnalytics: a
+    .mutation()
+    .arguments({
+      incidentId: a.string().required(),
+      wrapUpInput: a.ref('WrapUpInput').required(),
+    })
+    .returns(a.ref('AnalyticsWrapUpResult'))
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(wrapUpIncidentAnalyticsFn)),
+
+  /**
+   * IoT / Driver App: Called when a GPS update is pushed from the truck.
+   * Accepts a truckId, a locationGeohash of exactly 6 characters, and an
+   * operationalStatus of AVAILABLE | DISPATCHED | OFFLINE.  Updates the
+   * TOW_TRUCK_STATUS record and GSI2 projection attributes.
+   * Returns true on success.
+   *
+   * Requirements: 6.8, 2.3
+   */
+  updateTruckTelemetry: a
+    .mutation()
+    .arguments({
+      truckId: a.string().required(),
+      locationGeohash: a.string().required(),
+      operationalStatus: a.string().required(),
+    })
+    .returns(a.boolean())
+    .authorization((allow: any ) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(updateTruckTelemetryFn)),
+
+  /**
+   * Called by the Customer View to initiate a WebRTC voice call or Chat
+   * session via Amazon Connect.  Returns a ConnectSessionResult so the
+   * frontend can wire up the Amazon Connect Streams SDK.
+   */
+  startConnectSession: a
+    .mutation()
+    .arguments({
+      channel: a.string().required(),
+      customerIdentifier: a.string().required(),
+      plateNumber: a.string().required(),
+      locationGeohash: a.string().required(),
+    })
+    .returns(a.ref('ConnectSessionResult'))
+    .authorization((allow: any) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(startConnectSessionFn)),
+
+  // ─── Custom Subscriptions (Requirements: 6.9) ────────────────────────────
+
+  /**
+   * Internal publish mutation used as the subscription source for
+   * `onIncidentLiveUpdate`.  Called by the Lambda handlers of
+   * `confirmDispatchAndGeofence` and `updateTruckTelemetry` to emit live
+   * incident updates to the dispatcher dashboard.  Not intended to be invoked
+   * directly by clients — the subscription API is `onIncidentLiveUpdate`.
+   *
+   * Requirements: 6.9
+   */
+  publishIncidentLiveUpdate: a
+    .mutation()
+    .arguments({
+      incidentId: a.string().required(),
+      incidentStatus: a.string().required(),
+      truckLocationGeohash: a.string().required(),
+      etaMinutes: a.integer().required(),
+    })
+    .returns(a.ref('IncidentLiveUpdate'))
+    .authorization((allow: any) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ])
+    .handler(a.handler.function(publishIncidentLiveUpdateFn)),
+
+  /**
+   * Real-time subscription pushed to the dispatcher dashboard.
+   * Fires whenever `publishIncidentLiveUpdate` is invoked (which itself is
+   * triggered by the Lambda handlers of `confirmDispatchAndGeofence` and
+   * `updateTruckTelemetry`), filtered by `incidentId`.
+   * Emits an `IncidentLiveUpdate` payload containing the current incident
+   * status, tow truck location geohash, and ETA in whole minutes.
+   *
+   * The Amplify Gen 2 subscription API requires the subscribed mutation's
+   * return type to match the subscription's return type; therefore this
+   * subscription subscribes to `publishIncidentLiveUpdate` (which returns
+   * `IncidentLiveUpdate`) rather than to the trigger mutations directly.
+   *
+   * Requirements: 6.9
+   */
+  onIncidentLiveUpdate: a
+    .subscription()
+    .for(a.ref('publishIncidentLiveUpdate'))
+    .arguments({ incidentId: a.string().required() })
+    .handler(a.handler.custom({ entry: './receive.js' }))
+    .authorization(allow => [allow.authenticated()]),
+
+  // ─── Main Model ────────────────────────────────────────────────────────────
+
+  RoadAssistRecord: a
+    .model({
+      // ─── Composite Primary Keys ───────────────────────────────────────────
+      // PK examples: CUST#<id>, INC#<ulid>, TRUCK#<id>
+      PK: a.string().required(),
+      // SK examples: PROFILE, METADATA, VEH#<plate>, COMM#<ts>#<contactId>
+      SK: a.string().required(),
+
+      // ─── Base Attributes ──────────────────────────────────────────────────
+      // Discriminator that identifies the domain entity stored in this record.
+      entityType: a.string().required(),
+      // Flexible JSON payload — shape varies per entityType.
+      data: a.json(),
+      // Unix epoch (seconds) for DynamoDB TTL; populated only for
+      // CALL_INTERACTION_LOG and TRUCK_DISPATCH_LOG entities.
+      expiresAt: a.integer(),
+
+      // ─── Overloaded status + date fields — top-level for GSI indexing ────
+      // Trucks: AVAILABLE | DISPATCHED | OFFLINE
+      // Incidents: INTAKE | DISPATCHED | RESOLVED | ESCALATED_TO_HUMAN
+      // Customers: GUEST | GOLD
+      status: a.string(),
+      // ISO-8601 creation timestamp for chronological GSI sort
+      recordCreatedAt: a.string(),
+
+      // ─── Promoted incident / customer fields (no longer buried in data blob) ──
+      incidentType: a.string(),
+      incidentDescription: a.string(),   // raw customer description of the issue
+      customerPhone: a.string(),
+      incidentPlate: a.string(),
+      coveredByPolicy: a.boolean(),
+      dispatchFeeAmount: a.float(),
+      paymentStatus: a.string(),
+
+      // ─── GSI Key Attributes ───────────────────────────────────────────────
+      // GSI1 (CustomerActiveIncidentIndex): customer ↔ active incident lookup
+      GSI1PK: a.string(),
+      GSI1SK: a.string(),
+      // GSI2 (FleetAvailabilityIndex): fleet availability lookup
+      GSI2PK: a.string(),
+      GSI2SK: a.string(),
+      // GSI3 (TruckActiveIncidentIndex): sparse index — trucks with active incidents
+      GSI3PK: a.string(),
+      GSI3SK: a.string(),
+      // GSI4 (OperationsControlIndex): operations control dashboard
+      GSI4PK: a.string(),
+      GSI4SK: a.string(),
+      // GSI5 (VehicleIncidentHistoryIndex): sparse index — vehicle incident history
+      GSI5PK: a.string(),
+      GSI5SK: a.string(),
+
+      // ─── AgentCore Correlation Attributes ────────────────────────────────
+      // Bedrock AgentCore memory and actor IDs for cross-session correlation.
+      agentCoreMemoryId: a.string(),
+      agentCoreActorIdCustomer: a.string(),
+      agentCoreActorIdVehicle: a.string(),
+      agentCoreSessionId: a.string(),
+
+      // ─── Guardrail Audit Attributes ───────────────────────────────────────
+      // Tracks Bedrock Guardrail interventions for compliance auditing.
+      guardrailIntervened: a.boolean(),
+      guardrailActionReason: a.string(),
+      guardrailIdAndVersion: a.string(),
+
+      // ─── Contact Lens and Post-Call Analytics Attributes ─────────────────
+      // Populated by the wrapUpIncidentAnalytics Lambda after call completion.
+      llmChatSummary: a.string(),
+      contactLensGenAiSummary: a.string(),
+      sentimentLabel: a.string(),
+      // Sentiment score in [0.0, 1.0]; customer effort score in [0.0, 10.0].
+      sentimentScore: a.float(),
+      customerEffortScore: a.float(),
+      // S3 URIs for the call transcript and recording artifacts.
+      transcriptS3Uri: a.string(),
+      recordingS3Uri: a.string(),
+    })
+    // Composite primary key: Amplify maps PK → DynamoDB partition key,
+    // SK → DynamoDB sort key.
+    .identifier(['PK', 'SK'])
+    // ─── Global Secondary Indexes (Requirements: 4.1–4.5) ─────────────────
+    .secondaryIndexes((index) => [
+      // GSI1: CustomerActiveIncidentIndex
+      // Access pattern: look up the active incident for a given customer.
+      index('GSI1PK').sortKeys(['GSI1SK']).name('CustomerActiveIncidentIndex'),
+      // GSI2: FleetAvailabilityIndex
+      // Access pattern: query all available trucks for a given region/zone.
+      index('GSI2PK').sortKeys(['GSI2SK']).name('FleetAvailabilityIndex'),
+      // GSI3: TruckActiveIncidentIndex (sparse)
+      // Access pattern: find the active incident assigned to a specific truck.
+      // Sparse — only records with GSI3PK/GSI3SK populated are indexed.
+      index('GSI3PK').sortKeys(['GSI3SK']).name('TruckActiveIncidentIndex'),
+      // GSI4: OperationsControlIndex
+      // Access pattern: operations control dashboard — all active incidents by status/time.
+      index('GSI4PK').sortKeys(['GSI4SK']).name('OperationsControlIndex'),
+      // GSI5: VehicleIncidentHistoryIndex (sparse)
+      // Access pattern: full incident history for a specific vehicle (plate).
+      // Sparse — only INCIDENT_METADATA records with a linked vehicle are indexed.
+      index('GSI5PK').sortKeys(['GSI5SK']).name('VehicleIncidentHistoryIndex'),
+      // GSI6: EntityStatusIndex — query by entityType + status (eliminates scans)
+      index('entityType').sortKeys(['status']).name('EntityStatusIndex'),
+      // GSI7: EntityDateIndex — query by entityType sorted by creation date (DESC)
+      index('entityType').sortKeys(['recordCreatedAt']).name('EntityDateIndex'),
+    ])
+    .authorization((allow: any) => [
+      allow.authenticated(),
+      allow.authenticated('identityPool'),
+      allow.publicApiKey(),
+    ]),
+    
+});
+
+export type Schema = ClientSchema<typeof schema>;
+
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: 'iam',
+    apiKeyAuthorizationMode: {
+      expiresInDays: 90,
+    },
+  },
+});

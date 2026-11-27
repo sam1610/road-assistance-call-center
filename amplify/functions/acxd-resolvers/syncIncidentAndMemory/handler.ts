@@ -21,7 +21,7 @@ interface IncidentMemoryContext {
   defaultPlate: string;
   incidentType: string;        
   incidentDescription: string; 
-  locationGeohash: string;     // 1. ADDED: Define in the interface
+  locationGeohash: string;
   agentCoreMemoryId: string;
   agentCoreActorIdCustomer: string;
   agentCoreActorIdVehicle: string;
@@ -59,23 +59,31 @@ function normaliseString(raw: unknown, fallback = 'UNKNOWN'): string {
   return fallback;
 }
 
+// ── normalizePhone ─────────────────────────────────────────────────────────────
+function normalizePhone(phone: string | undefined): string | undefined {
+  if (!phone) return undefined;
+  // Remove all non-digit characters
+  return phone.replace(/\D/g, '');
+}
+
 export const handler = async (event: any): Promise<IncidentMemoryContext> => {
   const args = event.arguments || event.Details?.Parameters || {};
 
-  // Extract args — support AppSync direct path, Connect form path, and widget FAB path.
-  // Widget FAB: Connect prepends 'HostedWidget-' to all snippet contactAttributes.
-  // The flow passes the HostedWidget-customerPhone value via customerIdentifierFallback.
+  // Extract args — support AppSync direct path, Connect form path, and widget FAB path
   const {
     contactId,
     customerIdentifier: rawCustomerIdentifier,
     customerIdentifierFallback,
+    customerPhone: rawCustomerPhone,
+    voicePhoneNumber, 
+    languagePreference,
     plateNumber,
     incidentType,
     incidentDescription,
     locationGeohash,
   } = args;
 
-  // Resolve customerIdentifier: direct value wins; HostedWidget fallback for FAB path.
+  // Resolve customerIdentifier
   const customerIdentifier = (rawCustomerIdentifier && String(rawCustomerIdentifier).trim())
     ? String(rawCustomerIdentifier).trim()
     : (customerIdentifierFallback && String(customerIdentifierFallback).trim())
@@ -91,25 +99,31 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
 
   const safePlateNumber  = normaliseString(plateNumber,  'UNKNOWN');
   const safeIncidentType = normaliseString(incidentType, 'UNKNOWN');
-  
-  // 3. ADDED: Safely normalize the geohash to prevent undefined errors
   const safeGeohash      = normaliseString(locationGeohash, 'thev0z');
+  const safeLanguage     = normaliseString(languagePreference, 'en');
 
   let safeDescription = normaliseString(incidentDescription, 'None provided');
   if (!safeDescription || safeDescription.trim() === '') {
     safeDescription = 'None provided';
   }
 
+  // Normalize phone number from contact attributes or fallback to customerIdentifier
+  const normalizedPhone = normalizePhone(voicePhoneNumber || rawCustomerPhone);
+  const resolvedPhone = normalizedPhone || customerIdentifier;
+
   console.log('[syncIncidentAndMemory] Normalised args:', {
     customerIdentifier,
+    resolvedPhone,
     safePlateNumber,
     safeIncidentType,
     safeGeohash,
+    safeLanguage,
     safeDescription: safeDescription.slice(0, 80),
   });
 
   const nowIso = new Date().toISOString();
 
+  // Try to fetch existing customer profile
   const profileRes = await ddb.send(
     new GetCommand({
       TableName: TABLE_NAME,
@@ -117,13 +131,14 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
     })
   );
 
-  let customerPhone  = customerIdentifier;
-  let customerName   = 'Guest';   
-  let membershipTier = 'GUEST';
-  let isCovered      = false;
-  let dispatchFee    = 150.00;
+  let finalCustomerPhone = resolvedPhone;
+  let customerName       = 'Guest';   
+  let membershipTier     = 'GUEST';
+  let isCovered          = false;
+  let dispatchFee        = 150.00;
 
   if (profileRes.Item && profileRes.Item.data) {
+    // Parse existing profile
     let profileData: any = {};
     try {
       const raw = profileRes.Item.data;
@@ -133,7 +148,7 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
       console.warn('[syncIncidentAndMemory] Failed to parse profile data blob:', parseErr);
     }
 
-    customerPhone = profileData.customerPhone || customerIdentifier;
+    finalCustomerPhone = profileData.customerPhone || resolvedPhone;
     customerName = profileData.driverName || profileData.customerName || 'Guest';
 
     const registeredCars: string[] = Array.isArray(profileData.cars) ? profileData.cars : [];
@@ -142,14 +157,59 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
       isCovered      = true;
       membershipTier = 'GOLD';
       dispatchFee    = 0.00;
-      console.log(`[syncIncidentAndMemory] Plate ${safePlateNumber} COVERED under policy for ${customerIdentifier}. customerName="${customerName}"`);
+      console.log(`[syncIncidentAndMemory] Plate ${safePlateNumber} COVERED. customerName="${customerName}"`);
     } else {
       isCovered      = false;
       membershipTier = 'GUEST';
       dispatchFee    = 50.00;
-      console.log(`[syncIncidentAndMemory] Plate ${safePlateNumber} NOT covered for ${customerIdentifier}. customerName="${customerName}"`);
+      console.log(`[syncIncidentAndMemory] Plate ${safePlateNumber} NOT covered. customerName="${customerName}"`);
     }
   } else {
+    // No profile found - check if customer exists by phone number (subscription verification)
+    if (normalizedPhone) {
+      try {
+        const phoneQuery = await ddb.send(
+          new QueryCommand({
+            TableName: TABLE_NAME,
+            IndexName: 'GSI3',
+            KeyConditionExpression: 'GSI3PK = :phone',
+            ExpressionAttributeValues: {
+              ':phone': `PHONE#${normalizedPhone}`,
+            },
+            Limit: 1,
+          })
+        );
+        
+        if (phoneQuery.Items && phoneQuery.Items.length > 0) {
+          const existingProfile = phoneQuery.Items[0];
+          console.log(`[syncIncidentAndMemory] Found existing customer by phone: ${normalizedPhone}`);
+          
+          if (existingProfile.data) {
+            try {
+              const phoneProfileData = typeof existingProfile.data === 'string' 
+                ? JSON.parse(existingProfile.data) 
+                : existingProfile.data;
+              
+              customerName = phoneProfileData.customerName || phoneProfileData.driverName || 'Guest';
+              membershipTier = phoneProfileData.membershipTier || 'BASIC';
+              
+              // Check subscription status
+              if (phoneProfileData.subscriptionStatus === 'ACTIVE') {
+                isCovered = true;
+                dispatchFee = 0.00;
+                console.log(`[syncIncidentAndMemory] Active subscription found for ${normalizedPhone}`);
+              }
+            } catch (err) {
+              console.warn('[syncIncidentAndMemory] Failed to parse phone lookup profile:', err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[syncIncidentAndMemory] Phone lookup failed:', err);
+      }
+    }
+
+    // Create new GUEST profile
     await ddb.send(
       new PutCommand({
         TableName: TABLE_NAME,
@@ -163,11 +223,11 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
           updatedAt: nowIso,
           agentCoreActorIdCustomer: `CUST#${customerIdentifier}`,
           data: JSON.stringify({
-            customerPhone: customerIdentifier,
+            customerPhone: finalCustomerPhone,
             membershipTier: 'GUEST',
             cars: [],
             enrolledAt: nowIso,
-            notes: 'Ad-hoc web form submission — standard dispatch fees apply',
+            notes: 'Ad-hoc call submission — standard dispatch fees apply',
           }),
         },
       })
@@ -175,6 +235,7 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
     console.log(`[syncIncidentAndMemory] Created new GUEST profile for ${customerIdentifier}.`);
   }
 
+  // Check for existing active incident
   const activeIncQuery = await ddb.send(
     new QueryCommand({
       TableName: TABLE_NAME,
@@ -193,8 +254,9 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
 
   if (existingItem) {
     incidentId = (existingItem.PK as string).replace('INC#', '');
-    console.log(`[syncIncidentAndMemory] Recovered existing incident ${incidentId} for ${customerIdentifier}.`);
+    console.log(`[syncIncidentAndMemory] Recovered existing incident ${incidentId}`);
   } else {
+    // Create new incident
     incidentId = ulid();
 
     await ddb.send(
@@ -210,8 +272,10 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
           updatedAt:           nowIso,
           incidentType:        safeIncidentType,      
           incidentDescription: safeDescription,       
-          customerPhone,
+          customerPhone:       finalCustomerPhone,
+          languagePreference:  safeLanguage,
           incidentPlate:       safePlateNumber,
+          locationGeohash:     safeGeohash,
           coveredByPolicy:     isCovered,
           dispatchFeeAmount:   dispatchFee,
           paymentStatus:       isCovered
@@ -230,8 +294,10 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
           data: JSON.stringify({
             incidentId,
             customerId:          customerIdentifier,
-            customerPhone,
+            customerPhone:       finalCustomerPhone,
+            languagePreference:  safeLanguage,
             incidentPlate:       safePlateNumber,
+            locationGeohash:     safeGeohash,
             initialContactId:    contactId,
             incidentStatus:      'INTAKE',
             coveredByPolicy:     isCovered,
@@ -253,13 +319,13 @@ export const handler = async (event: any): Promise<IncidentMemoryContext> => {
   return {
     incidentId,
     customerId:              customerIdentifier,
-    customerPhone,
+    customerPhone:           finalCustomerPhone,
     customerName,            
     membershipTier,          
     defaultPlate:            safePlateNumber,
     incidentType:            safeIncidentType,
     incidentDescription:     safeDescription,
-    locationGeohash:         safeGeohash,       // 4. ADDED: Return it in the final payload
+    locationGeohash:         safeGeohash,
     agentCoreMemoryId:       AGENTCORE_MEMORY_ID,
     agentCoreActorIdCustomer: `CUST#${customerIdentifier}`,
     agentCoreActorIdVehicle:  `VEH#${safePlateNumber}`,

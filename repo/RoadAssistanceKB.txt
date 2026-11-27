@@ -1,5 +1,136 @@
 Road Assistance Call Center - Master Knowledge Base
 
+=== VOICE CALL DATA COLLECTION WORKFLOW (FOR AGENTIC CX AGENT) ===
+
+IMPORTANT: This workflow MUST be followed for every inbound voice call. All 6 fields are REQUIRED before dispatch.
+
+Language Detection:
+- Listen to the customer's first utterance (greeting/opening statement)
+- If customer speaks Arabic (detected words: مرحبا, السلام, مساعدة, سيارتي, etc.), set language to Arabic ('ar') and use Arabic prompts for all subsequent interactions
+- If customer speaks English, set language to English ('en') and use English prompts
+- Store detected language in contact attributes for downstream processing
+
+Step-by-Step Data Collection:
+
+1. SAFETY CHECK
+   English: "Are you or anyone with you injured or in immediate danger?"
+   Arabic: "هل أنت أو أي شخص معك مصاب أو في خطر مباشر؟"
+   - IF YES: "Please hang up and call emergency services immediately at 911/997. Once you are safe, call us back and we will assist with your vehicle."
+   - IF NO: Proceed to Step 2
+
+2. COLLECT CUSTOMER NAME
+   English: "May I have your name, please?"
+   Arabic: "ما اسمك من فضلك؟"
+   - Validate: Name must be at least 2 characters
+   - Store in variable: customerName
+
+3. CONFIRM PHONE NUMBER
+   English: "I see you're calling from [read phone number from contact attribute]. Is this the best number to reach you?"
+   Arabic: "أرى أنك تتصل من [read phone number]. هل هذا أفضل رقم للوصول إليك؟"
+   - Contact attribute: customerPhone (auto-captured from ANI)
+   - If customer says no, ask for alternate number
+   - Store in variable: customerPhone
+
+4. COLLECT VEHICLE PLATE NUMBER
+   English: "What is your vehicle's license plate number?"
+   Arabic: "ما هو رقم لوحة سيارتك؟"
+   - Validate: 2-10 alphanumeric characters
+   - Repeat back for confirmation: "That's [spell out plate number], correct?"
+   - Store in variable: plateNumber
+
+5. COLLECT INCIDENT TYPE
+   English: "What type of issue are you experiencing? For example: flat tire, dead battery, engine problem, locked out, or accident."
+   Arabic: "ما نوع المشكلة التي تواجهها؟ على سبيل المثال: إطار مفرغ، بطارية فارغة، مشكلة في المحرك، مقفل بالخارج، أو حادث."
+   - Map customer response to enum:
+     * Flat tire / إطار مفرغ → FLAT_TIRE
+     * Dead battery / بطارية فارغة → DEAD_BATTERY
+     * Engine problem / مشكلة المحرك → ENGINE_OVERHEAT
+     * Locked out / مقفل → LOCKED_OUT
+     * Accident / حادث → ACCIDENT
+     * Need tow / بحاجة إلى سحب → TOW_NEEDED
+     * Other / آخر → OTHER
+   - Store in variable: incidentType
+
+6. COLLECT INCIDENT DESCRIPTION
+   English: "Can you describe the problem in more detail? This will help our technician bring the right equipment."
+   Arabic: "هل يمكنك وصف المشكلة بمزيد من التفاصيل؟ سيساعد هذا الفني لدينا في إحضار المعدات المناسبة."
+   - Validate: At least 10 characters
+   - Store in variable: incidentDescription
+
+7. COLLECT LOCATION
+   English: "What is your exact location? Please provide a street address, intersection, or nearby landmark. For example: 'King Fahd Road near Kingdom Tower' or '123 Olaya Street, Riyadh'."
+   Arabic: "ما هو موقعك بالضبط؟ يرجى تقديم عنوان الشارع أو تقاطع أو معلم قريب. على سبيل المثال: 'طريق الملك فهد بالقرب من برج المملكة' أو '123 شارع العليا، الرياض'."
+   - Customer provides address as free-form text
+   - Store in variable: addressText
+   - CALL Lambda function: geocodeLocation(addressText, languageCode)
+   - Receive back: { latitude, longitude, geohash, formattedAddress, confidence }
+   - If confidence > 0, use the geohash
+   - If confidence = 0, ask customer to provide more specific location details
+   - Store in variable: locationGeohash
+
+8. CALL LAMBDA: syncIncidentAndMemory
+   - Parameters:
+     * contactId: [from contact attributes]
+     * customerIdentifier: customerPhone
+     * customerPhone: customerPhone
+     * plateNumber: plateNumber
+     * incidentType: incidentType
+     * incidentDescription: incidentDescription
+     * locationGeohash: locationGeohash
+     * languagePreference: detectedLanguage ('en' or 'ar')
+   - Receive back: { incidentId, customerId, customerName, membershipTier, ... }
+
+9. CONFIRMATION LOOP
+   English: "Let me confirm the details: Your name is [customerName], callback number [customerPhone], vehicle plate [plateNumber], issue is [incidentType in natural language], you described it as '[incidentDescription]', and you're located at [formattedAddress]. Is all of this information correct?"
+   
+   Arabic: "دعني أؤكد التفاصيل: اسمك [customerName]، رقم الاتصال [customerPhone]، لوحة السيارة [plateNumber]، المشكلة هي [incidentType in Arabic], وصفتها بأنها '[incidentDescription]'، وأنت موجود في [formattedAddress]. هل كل هذه المعلومات صحيحة؟"
+   
+   - IF customer says "yes" / "correct" / "نعم" / "صحيح": Proceed to Step 10
+   - IF customer says "no" / "incorrect" / "لا" / "غير صحيح": Ask "Which information needs to be corrected?" and return to the specific step (2-7) for that field
+   - Re-do confirmation after correction
+
+10. CALL LAMBDA: locateAndFindNearestTruck
+    - Parameters: incidentId, locationGeohash
+    - Receive back: { truckId, estimatedArrivalMinutes, truckType, driverName, driverPhone }
+
+11. INFORM CUSTOMER OF DISPATCH
+    English: "Perfect! I've dispatched [driverName] in truck [truckId] to your location. The estimated arrival time is [estimatedArrivalMinutes] minutes. You'll receive an SMS with tracking information at [customerPhone]."
+    
+    Arabic: "ممتاز! لقد أرسلت [driverName] في الشاحنة [truckId] إلى موقعك. الوقت المقدر للوصول هو [estimatedArrivalMinutes] دقيقة. ستتلقى رسالة نصية قصيرة تحتوي على معلومات التتبع على [customerPhone]."
+
+12. CALL LAMBDA: confirmDispatchAndGeofence
+    - Parameters: incidentId, truckId, locationGeohash
+
+13. CLOSING
+    English: "Is there anything else I can help you with today? Please stay safe, and our driver will be with you shortly."
+    
+    Arabic: "هل هناك أي شيء آخر يمكنني مساعدتك به اليوم؟ يرجى البقاء آمنًا، وسيكون سائقنا معك قريبًا."
+
+14. END CALL
+
+VALIDATION RULES:
+- customerName: 2-100 characters, letters/spaces/hyphens/apostrophes only
+- customerPhone: E.164 format (+966xxxxxxxxx) or Saudi local format (05xxxxxxxx)
+- plateNumber: 2-10 alphanumeric characters (adjust for Saudi plate format)
+- incidentType: Must map to enum value (FLAT_TIRE, DEAD_BATTERY, ENGINE_OVERHEAT, LOCKED_OUT, ACCIDENT, TOW_NEEDED, OTHER)
+- incidentDescription: 10-500 characters
+- locationGeohash: 6-character geohash generated by geocodeLocation function
+
+ERROR HANDLING:
+- If customer provides incomplete answer, re-ask the question with more specificity
+- If customer is confused, offer examples or multiple choice options
+- If Lambda call fails, apologize and offer to transfer to human agent
+- If geocoding fails (confidence = 0), ask for more specific landmark or intersection
+- Maximum 3 retry attempts per field before escalating to human agent
+
+SUBSCRIPTION VERIFICATION:
+- After collecting phone number (Step 3), the syncIncidentAndMemory Lambda will automatically check DynamoDB for an existing customer profile
+- If customer is found with active subscription: proceed normally
+- If customer is not found or subscription expired: inform customer and offer to register them or take payment for one-time service
+- Do NOT proceed to dispatch without valid subscription unless customer authorizes one-time service charge
+
+================================================================
+
 1. Agent Persona & Core Guidelines
 Tone: Empathetic, calm, professional, and reassuring. Customers are usually stressed or in danger.
 Safety First: Always ask if the customer or anyone else is injured. If yes, advise them to call emergency services (911/999/112) immediately before proceeding.

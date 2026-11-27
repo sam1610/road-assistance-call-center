@@ -8,6 +8,7 @@ import { wrapUpIncidentAnalyticsFn } from './functions/acxd-resolvers/wrapUpInci
 import { updateTruckTelemetryFn } from './functions/acxd-resolvers/updateTruckTelemetry/resource';
 import { publishIncidentLiveUpdateFn } from './functions/acxd-resolvers/publishIncidentLiveUpdate/resource';
 import { startConnectSessionFn } from './functions/acxd-resolvers/startConnectSession/resource';
+
 import { CfnResource } from 'aws-cdk-lib';
 import { StreamViewType } from 'aws-cdk-lib/aws-dynamodb';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
@@ -19,6 +20,7 @@ import {
   CfnTracker,
   CfnTrackerConsumer,
 } from 'aws-cdk-lib/aws-location';
+import { geocodeLocation } from './functions/geocodeLocation/resource';
 
 const backend = defineBackend({
   auth,
@@ -30,6 +32,7 @@ const backend = defineBackend({
   updateTruckTelemetryFn,
   publishIncidentLiveUpdateFn,
   startConnectSessionFn,
+  geocodeLocation
 });
 
 // ─── 1. DynamoDB Streams + TTL ────────────────────────────────────────────────
@@ -164,12 +167,14 @@ const acxdLambdas = [
   backend.updateTruckTelemetryFn,
   backend.publishIncidentLiveUpdateFn,
   backend.startConnectSessionFn, // Automatically grants DynamoDB & Location access to the Start Session Lambda
+   backend.geocodeLocation,
 ];
 
 for (const fn of acxdLambdas) {
   fn.resources.lambda.addToRolePolicy(dynamoPolicy);
   fn.resources.lambda.addToRolePolicy(locationPolicy);
   fn.addEnvironment('ROAD_ASSIST_TABLE_NAME', tableName);
+
   fn.addEnvironment('PLACE_INDEX_NAME', placeIndex.indexName);
   fn.addEnvironment('ROUTE_CALCULATOR_NAME', routeCalculator.calculatorName);
   fn.addEnvironment('GEOFENCE_COLLECTION_NAME', geofenceCollection.collectionName);

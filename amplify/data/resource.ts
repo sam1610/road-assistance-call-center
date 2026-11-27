@@ -1,5 +1,6 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { syncIncidentAndMemoryFn } from '../functions/acxd-resolvers/syncIncidentAndMemory/resource';
+import { geocodeLocation } from '../functions/geocodeLocation/resource';
 import { locateAndFindNearestTruckFn } from '../functions/acxd-resolvers/locateAndFindNearestTruck/resource';
 import { confirmDispatchAndGeofenceFn } from '../functions/acxd-resolvers/confirmDispatchAndGeofence/resource';
 import { wrapUpIncidentAnalyticsFn } from '../functions/acxd-resolvers/wrapUpIncidentAnalytics/resource';
@@ -118,11 +119,32 @@ const schema = a.schema({
    *
    * Requirements: 6.2, 2.3
    */
+  geocodeLocation: a
+  .query()
+  .arguments({
+    address: a.string().required(),
+    languageCode: a.string(), // 'en' or 'ar'
+  })
+  .returns(
+    a.customType({
+      geohash: a.string().required(),
+      latitude: a.float().required(),
+      longitude: a.float().required(),
+      address: a.string().required(),
+      confidence: a.float().required(),
+    })
+  )
+  .handler(a.handler.function(geocodeLocation)),
+  .handler(a.handler.function(geocodeLocation)),
+
   syncIncidentAndMemory: a
     .query()
     .arguments({
       contactId: a.string().required(),
       customerIdentifier: a.string().required(),
+      customerPhone: a.string(),    
+      voicePhoneNumber:a.string(),   
+      languagePreference: a.string(), 
       plateNumber: a.string(),
       incidentType: a.string(),
       incidentDescription: a.string(),
