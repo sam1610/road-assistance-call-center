@@ -215,7 +215,7 @@ function mockWrapUpIncidentAnalytics(args: {
   const incident = mockIncidentStore.get(`INC#${args.incidentId}`);
   if (!incident) return false;
 
-  incident.status = args.finalStatus;
+  incident.status = args.finalStatus as any; // Type cast to allow CANCELLED
   mockIncidentStore.set(incident.PK, incident);
 
   return true;

@@ -1,6 +1,6 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { syncIncidentAndMemoryFn } from '../functions/acxd-resolvers/syncIncidentAndMemory/resource';
-import { geocodeLocation } from '../functions/geocodeLocation/resource';
+import { geocodeLocationFn } from '../functions/geocodeLocation/resource';
 import { locateAndFindNearestTruckFn } from '../functions/acxd-resolvers/locateAndFindNearestTruck/resource';
 import { confirmDispatchAndGeofenceFn } from '../functions/acxd-resolvers/confirmDispatchAndGeofence/resource';
 import { wrapUpIncidentAnalyticsFn } from '../functions/acxd-resolvers/wrapUpIncidentAnalytics/resource';
@@ -134,8 +134,8 @@ const schema = a.schema({
       confidence: a.float().required(),
     })
   )
-  .handler(a.handler.function(geocodeLocation)),
-  .handler(a.handler.function(geocodeLocation)),
+  .authorization((allow) => [allow.publicApiKey()])
+  .handler(a.handler.function(geocodeLocationFn)),
 
   syncIncidentAndMemory: a
     .query()

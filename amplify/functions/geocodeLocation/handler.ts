@@ -1,12 +1,9 @@
 import type { Schema } from '../../data/resource';
-import { LocationClient, SearchPlaceIndexForTextCommand } from '@aws-sdk/client-location';
+import { GeoPlacesClient, GeocodeCommand } from '@aws-sdk/client-geo-places';
 import Geohash from 'latlon-geohash';
 
-// Initialize AWS Location Service client
-const locationClient = new LocationClient({ region: process.env.AWS_REGION || 'us-east-1' });
-
-// Place Index name - should be set via environment variable
-const PLACE_INDEX_NAME = process.env.PLACE_INDEX_NAME || 'RoadAssistPlaceIndex';
+// Initialize AWS Location Service client (new API - no Place Index needed!)
+const geoPlacesClient = new GeoPlacesClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 // Default fallback: Riyadh city center, Saudi Arabia
 const DEFAULT_LOCATION = {
@@ -29,33 +26,34 @@ export const handler: Schema['geocodeLocation']['functionHandler'] = async (even
   try {
     console.log(`Geocoding address: "${address}" with language: ${languageCode || 'en'}`);
 
-    // Prepare search command
-    const command = new SearchPlaceIndexForTextCommand({
-      IndexName: PLACE_INDEX_NAME,
-      Text: address,
+    // Use NEW AWS Location Service API (no Place Index required!)
+    const command = new GeocodeCommand({
+      QueryText: address,
       Language: languageCode || 'en', // 'en' or 'ar'
       MaxResults: 1,
       // Bias search results toward Saudi Arabia (Riyadh center)
       BiasPosition: [46.6753, 24.7136], // [longitude, latitude]
-      FilterCountries: ['SAU'], // Restrict to Saudi Arabia
+      Filter: {
+        IncludeCountries: ['SAU'], // Restrict to Saudi Arabia
+      },
     });
 
     // Execute search
-    const response = await locationClient.send(command);
+    const response = await geoPlacesClient.send(command);
 
     // Check if we got results
-    if (!response.Results || response.Results.length === 0) {
-      console.warn('No geocoding results found, returning default location');
-      return DEFAULT_LOCATION;
+    if (!response.ResultItems || response.ResultItems.length === 0) {
+      console.warn('No geocoding results found, trying OpenStreetMap fallback');
+      return await geocodeWithOSM(address);
     }
 
     // Extract first result
-    const result = response.Results[0];
-    const point = result.Place?.Geometry?.Point;
+    const result = response.ResultItems[0];
+    const point = result.Position;
 
     if (!point || point.length < 2) {
       console.error('Invalid geometry in result:', result);
-      return DEFAULT_LOCATION;
+      return await geocodeWithOSM(address);
     }
 
     const [longitude, latitude] = point; // AWS Location returns [lon, lat]
@@ -64,10 +62,10 @@ export const handler: Schema['geocodeLocation']['functionHandler'] = async (even
     const geohash = Geohash.encode(latitude, longitude, 6);
 
     // Extract formatted address
-    const formattedAddress = result.Place?.Label || address;
+    const formattedAddress = result.Title || result.Address?.Label || address;
 
-    // Calculate confidence (AWS Location Service uses Relevance score 0-1)
-    const confidence = result.Relevance || 0.5;
+    // Calculate confidence (new API uses different scoring)
+    const confidence = result.MapView ? 0.9 : 0.7;
 
     console.log(`Geocoding successful: ${formattedAddress} -> ${geohash} (confidence: ${confidence})`);
 
@@ -79,10 +77,10 @@ export const handler: Schema['geocodeLocation']['functionHandler'] = async (even
       confidence
     };
 
-  } catch (error) {
-    console.error('Geocoding error:', error);
+  } catch (error: any) {
+    console.error('AWS Location Service error:', error.message || error);
     
-    // If AWS Location Service is not available, try fallback with OpenStreetMap
+    // Fall back to OpenStreetMap if AWS Location fails
     try {
       console.log('Attempting OpenStreetMap fallback...');
       return await geocodeWithOSM(address);

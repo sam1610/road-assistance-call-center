@@ -20,7 +20,7 @@ import {
   CfnTracker,
   CfnTrackerConsumer,
 } from 'aws-cdk-lib/aws-location';
-import { geocodeLocation } from './functions/geocodeLocation/resource';
+import { geocodeLocationFn } from './functions/geocodeLocation/resource';
 
 const backend = defineBackend({
   auth,
@@ -32,7 +32,7 @@ const backend = defineBackend({
   updateTruckTelemetryFn,
   publishIncidentLiveUpdateFn,
   startConnectSessionFn,
-  geocodeLocation
+  geocodeLocationFn
 });
 
 // ─── 1. DynamoDB Streams + TTL ────────────────────────────────────────────────
@@ -167,7 +167,7 @@ const acxdLambdas = [
   backend.updateTruckTelemetryFn,
   backend.publishIncidentLiveUpdateFn,
   backend.startConnectSessionFn, // Automatically grants DynamoDB & Location access to the Start Session Lambda
-   backend.geocodeLocation,
+   backend.geocodeLocationFn,
 ];
 
 for (const fn of acxdLambdas) {

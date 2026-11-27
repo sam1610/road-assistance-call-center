@@ -29,9 +29,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://hbdlmgeh3jh4dl4zwjssq4msea.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://z4afwy7ze5ec5pukk6gspx3wxi.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-v4ke5urgtvfeber6osnzbyjiaq",
+    "api_key": "da2-fndv6yeaqjhejl4vmux6lttbwu",
     "default_authorization_type": "AWS_IAM",
     "authorization_types": [
       "API_KEY",
@@ -775,9 +775,71 @@
               "attributes": []
             }
           }
+        },
+        "GeocodeLocationReturnType": {
+          "name": "GeocodeLocationReturnType",
+          "fields": {
+            "geohash": {
+              "name": "geohash",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "latitude": {
+              "name": "latitude",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": true,
+              "attributes": []
+            },
+            "longitude": {
+              "name": "longitude",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": true,
+              "attributes": []
+            },
+            "address": {
+              "name": "address",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "confidence": {
+              "name": "confidence",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
         }
       },
       "queries": {
+        "geocodeLocation": {
+          "name": "geocodeLocation",
+          "isArray": false,
+          "type": {
+            "nonModel": "GeocodeLocationReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "address": {
+              "name": "address",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "languageCode": {
+              "name": "languageCode",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
         "syncIncidentAndMemory": {
           "name": "syncIncidentAndMemory",
           "isArray": false,
@@ -797,6 +859,24 @@
               "isArray": false,
               "type": "String",
               "isRequired": true
+            },
+            "customerPhone": {
+              "name": "customerPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "voicePhoneNumber": {
+              "name": "voicePhoneNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "languagePreference": {
+              "name": "languagePreference",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
             },
             "plateNumber": {
               "name": "plateNumber",
